@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block title %}Book Instruments{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/timeline.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Instrument Booking</h1>
+  <p class="page-subtitle">Each booking: 1–4 hours · Max 3 bookings per week · Mon–Fri only</p>
+</div>
+
+<!-- Week navigation -->
+<div class="week-nav">
+  <a href="{{ url_for('bookings.index', week=prev_week_str) }}" class="btn btn-outline">&#8592; Previous Week</a>
+  <span class="week-label">
+    Week of {{ monday.strftime('%b %d') }} – {{ weekdays[-1].strftime('%b %d, %Y') }}
+  </span>
+  <a href="{{ url_for('bookings.index', week=next_week_str) }}" class="btn btn-outline">Next Week &#8594;</a>
+</div>
+
+<!-- Mode toggle -->
+<div class="mode-toggle">
+  <button class="mode-btn active" id="btnVisual" onclick="setMode('visual')">Visual Selection</button>
+  <button class="mode-btn" id="btnForm" onclick="setMode('form')">Form Selection</button>
+</div>
+
+<!-- Status message -->
+<div id="statusMsg" class="status-msg" style="display:none"></div>
+
+<!-- ===== VISUAL GRID ===== -->
+<div id="visualSection">
+  {% for instr in instruments %}
+  <div class="grid-card">
+    <div class="grid-card-header">{{ instr.name }}</div>
+    <div class="grid-scroll">
+      <table class="timeline-table" data-instrument="{{ instr.id }}">
+        <thead>
+          <tr>
+            <th class="hour-label-head"></th>
+            {% for d in weekdays %}
+            <th class="date-head {% if d.isoformat() == today_str %}today{% endif %}">
+              {{ d.strftime('%a') }}<br><span>{{ d.strftime('%b %d') }}</span>
+            </th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for h in hours %}
+          <tr>
+            <td class="hour-label">{{ '%02d:00'|format(h) }}</td>
+            {% for d in weekdays %}
+            <td class="slot"
+                data-instrument="{{ instr.id }}"
+                data-date="{{ d.isoformat() }}"
+                data-hour="{{ h }}">
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- ===== FORM SECTION ===== -->
+<div id="formSection" style="display:none">
+  <div class="form-card">
+    <h2>Book a Slot</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="fInstrument">Instrument</label>
+        <select id="fInstrument">
+          <option value="">— Select instrument —</option>
+          {% for instr in instruments %}
+          <option value="{{ instr.id }}">{{ instr.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="fDate">Date</label>
+        <input type="date" id="fDate" min="{{ today_str }}">
+      </div>
+
+      <div class="form-group">
+        <label for="fStart">Start Time</label>
+        <select id="fStart">
+          <option value="">— Start —</option>
+          {% for h in hours %}
+          <option value="{{ h }}">{{ '%02d:00'|format(h) }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="fEnd">End Time</label>
+        <select id="fEnd" disabled>
+          <option value="">— End —</option>
+        </select>
+      </div>
+
+      <div class="form-group form-group-btn">
+        <button class="btn btn-primary" id="btnFormBook">Book</button>
+      </div>
+    </div>
+    <div id="formStatus" class="status-msg" style="display:none"></div>
+  </div>
+</div>
+
+<!-- Booking confirmation popover -->
+<div id="bookingPopover" class="popover" style="display:none">
+  <div class="popover-inner">
+    <p id="popoverText"></p>
+    <div class="popover-btns">
+      <button class="btn btn-primary" id="btnConfirmBook">Confirm</button>
+      <button class="btn btn-outline" id="btnCancelBook">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const BOOKINGS_DATA = {{ bookings_json | safe }};
+  const WEEK_DATES = {{ week_dates_json | safe }};
+  const CURRENT_USER_ID = {{ current_user.id }};
+  const TODAY_STR = '{{ today_str }}';
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/timeline.js') }}"></script>
+<script src="{{ url_for('static', filename='js/booking_form.js') }}"></script>
+{% endblock %}

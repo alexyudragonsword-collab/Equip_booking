@@ -1,0 +1,143 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Admin – Users{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+  <h1>Users</h1>
+</div>
+
+<table class="data-table" id="userTable">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Name</th>
+      <th>Department</th>
+      <th>Email</th>
+      <th>Admin</th>
+      <th>Joined</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for u in users %}
+    <tr id="urow-{{ u.id }}">
+      <td>{{ u.id }}</td>
+      <td>{{ u.name }}</td>
+      <td>{{ u.department }}</td>
+      <td>{{ u.email }}</td>
+      <td>{% if u.is_admin %}<span class="badge badge-active">Yes</span>{% else %}<span class="badge badge-inactive">No</span>{% endif %}</td>
+      <td>{{ u.created_at.strftime('%Y-%m-%d') }}</td>
+      <td>
+        {% if u.id == current_user.id %}
+        <button class="btn btn-sm btn-danger" disabled title="Cannot delete own account">Delete</button>
+        {% else %}
+        <button class="btn btn-sm btn-danger" onclick="deleteUser({{ u.id }}, '{{ u.name | e }}')">Delete</button>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="add-section">
+  <h2>Add User</h2>
+  <div class="form-grid">
+    <div class="form-group">
+      <label>Full Name</label>
+      <input type="text" id="uName" placeholder="Jane Smith">
+    </div>
+    <div class="form-group">
+      <label>Department</label>
+      <input type="text" id="uDept" placeholder="Physics">
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="uEmail" placeholder="jane@example.com">
+    </div>
+    <div class="form-group">
+      <label>Password <small>(min 8 chars)</small></label>
+      <input type="password" id="uPassword" placeholder="••••••••">
+    </div>
+    <div class="form-group form-group-check">
+      <label><input type="checkbox" id="uAdmin"> Make admin</label>
+    </div>
+  </div>
+  <button class="btn btn-primary" onclick="addUser()">Add User</button>
+  <div id="userStatus" class="status-msg" style="display:none"></div>
+</div>
+
+<script>
+const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+
+function deleteUser(id, name) {
+  if (!confirm(`Delete user "${name}"? This will also cancel all their bookings.`)) return;
+  fetch(`/admin/users/delete/${id}`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      document.getElementById(`urow-${id}`)?.remove();
+      show('userStatus', 'User deleted.', 'success');
+    } else {
+      show('userStatus', data.error, 'danger');
+    }
+  });
+}
+
+function addUser() {
+  const name = document.getElementById('uName').value.trim();
+  const dept = document.getElementById('uDept').value.trim();
+  const email = document.getElementById('uEmail').value.trim();
+  const password = document.getElementById('uPassword').value;
+  const isAdmin = document.getElementById('uAdmin').checked;
+
+  if (!name || !dept || !email || !password) {
+    show('userStatus', 'All fields are required.', 'danger');
+    return;
+  }
+
+  fetch('/admin/users/add', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+    body: JSON.stringify({ name, department: dept, email, password, is_admin: isAdmin })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      const u = data.user;
+      const tbody = document.querySelector('#userTable tbody');
+      const tr = document.createElement('tr');
+      tr.id = `urow-${u.id}`;
+      tr.innerHTML = `
+        <td>${u.id}</td>
+        <td>${escHtml(u.name)}</td>
+        <td>${escHtml(u.department)}</td>
+        <td>${escHtml(u.email)}</td>
+        <td>${u.is_admin ? '<span class="badge badge-active">Yes</span>' : '<span class="badge badge-inactive">No</span>'}</td>
+        <td>${u.created_at}</td>
+        <td><button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id}, '${escHtml(u.name)}')">Delete</button></td>`;
+      tbody.appendChild(tr);
+      ['uName','uDept','uEmail','uPassword'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('uAdmin').checked = false;
+      show('userStatus', 'User created.', 'success');
+    } else {
+      show('userStatus', data.error, 'danger');
+    }
+  });
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function show(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = `status-msg status-${type}`;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 4000);
+}
+</script>
+{% endblock %}

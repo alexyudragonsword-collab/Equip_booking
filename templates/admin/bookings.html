@@ -1,0 +1,78 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Admin – Bookings{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+  <h1>All Bookings</h1>
+</div>
+
+<div class="week-nav">
+  <a href="{{ url_for('admin.bookings', week=prev_week_str) }}" class="btn btn-outline">&#8592; Previous Week</a>
+  <span class="week-label">Week of {{ monday.strftime('%b %d, %Y') }}</span>
+  <a href="{{ url_for('admin.bookings', week=next_week_str) }}" class="btn btn-outline">Next Week &#8594;</a>
+</div>
+
+{% if bookings %}
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Instrument</th>
+      <th>User</th>
+      <th>Department</th>
+      <th>Time</th>
+      <th>Duration</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody id="bookingBody">
+    {% for b in bookings %}
+    <tr id="brow-{{ b.id }}">
+      <td>{{ b.date.strftime('%a, %b %d') }}</td>
+      <td>{{ b.instrument.name }}</td>
+      <td>{{ b.user.name }}</td>
+      <td>{{ b.user.department }}</td>
+      <td>{{ b.time_display }}</td>
+      <td>{{ b.duration }}h</td>
+      <td>
+        <button class="btn btn-danger btn-sm" onclick="adminCancel({{ b.id }})">Cancel</button>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty-state">No bookings this week.</p>
+{% endif %}
+
+<div id="cancelStatus" class="status-msg" style="display:none"></div>
+
+<script>
+const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+
+function adminCancel(id) {
+  if (!confirm('Cancel this booking?')) return;
+  fetch(`/admin/bookings/cancel/${id}`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      document.getElementById(`brow-${id}`)?.remove();
+      show('cancelStatus', 'Booking cancelled.', 'success');
+    } else {
+      show('cancelStatus', data.error, 'danger');
+    }
+  });
+}
+
+function show(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = `status-msg status-${type}`;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 4000);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,167 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Admin – Instruments{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+  <h1>Instruments</h1>
+</div>
+
+<table class="data-table" id="instrTable">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Name</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for instr in instruments %}
+    <tr id="irow-{{ instr.id }}">
+      <td>{{ instr.id }}</td>
+      <td>
+        <input type="text" class="inline-input" id="iname-{{ instr.id }}"
+               value="{{ instr.name }}" disabled>
+      </td>
+      <td>
+        <span class="badge {% if instr.is_active %}badge-active{% else %}badge-inactive{% endif %}"
+              id="istatus-{{ instr.id }}">
+          {{ 'Active' if instr.is_active else 'Inactive' }}
+        </span>
+      </td>
+      <td class="action-cell">
+        <button class="btn btn-sm btn-outline" id="ibtn-{{ instr.id }}"
+                onclick="startRename({{ instr.id }})">Rename</button>
+        <button class="btn btn-sm btn-secondary"
+                onclick="toggleInstrument({{ instr.id }})">
+          {{ 'Deactivate' if instr.is_active else 'Activate' }}
+        </button>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="add-section">
+  <h2>Add Instrument</h2>
+  <div class="form-row">
+    <div class="form-group">
+      <input type="text" id="newInstrName" placeholder="Instrument name" class="form-input">
+    </div>
+    <button class="btn btn-primary" onclick="addInstrument()">Add</button>
+  </div>
+  <div id="instrStatus" class="status-msg" style="display:none"></div>
+</div>
+
+<script>
+const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+
+function startRename(id) {
+  const input = document.getElementById(`iname-${id}`);
+  const btn = document.getElementById(`ibtn-${id}`);
+  if (btn.textContent === 'Rename') {
+    input.disabled = false;
+    input.focus();
+    btn.textContent = 'Save';
+    btn.classList.replace('btn-outline', 'btn-primary');
+  } else {
+    saveRename(id);
+  }
+}
+
+function saveRename(id) {
+  const input = document.getElementById(`iname-${id}`);
+  const btn = document.getElementById(`ibtn-${id}`);
+  const name = input.value.trim();
+  if (!name) { show('instrStatus', 'Name cannot be empty.', 'danger'); return; }
+
+  fetch(`/admin/instruments/rename/${id}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+    body: JSON.stringify({ name })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      input.value = data.name;
+      input.disabled = true;
+      btn.textContent = 'Rename';
+      btn.classList.replace('btn-primary', 'btn-outline');
+      show('instrStatus', 'Instrument renamed.', 'success');
+    } else {
+      show('instrStatus', data.error, 'danger');
+    }
+  });
+}
+
+function toggleInstrument(id) {
+  fetch(`/admin/instruments/toggle/${id}`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      const statusEl = document.getElementById(`istatus-${id}`);
+      const btn = statusEl.closest('tr').querySelector('.btn-secondary');
+      if (data.is_active) {
+        statusEl.textContent = 'Active';
+        statusEl.className = 'badge badge-active';
+        btn.textContent = 'Deactivate';
+      } else {
+        statusEl.textContent = 'Inactive';
+        statusEl.className = 'badge badge-inactive';
+        btn.textContent = 'Activate';
+      }
+      show('instrStatus', `Instrument ${data.is_active ? 'activated' : 'deactivated'}.`, 'success');
+    } else {
+      show('instrStatus', data.error, 'danger');
+    }
+  });
+}
+
+function addInstrument() {
+  const name = document.getElementById('newInstrName').value.trim();
+  if (!name) { show('instrStatus', 'Name cannot be empty.', 'danger'); return; }
+
+  fetch('/admin/instruments/add', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+    body: JSON.stringify({ name })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      const tbody = document.querySelector('#instrTable tbody');
+      const tr = document.createElement('tr');
+      tr.id = `irow-${data.id}`;
+      tr.innerHTML = `
+        <td>${data.id}</td>
+        <td><input type="text" class="inline-input" id="iname-${data.id}" value="${escHtml(data.name)}" disabled></td>
+        <td><span class="badge badge-active" id="istatus-${data.id}">Active</span></td>
+        <td class="action-cell">
+          <button class="btn btn-sm btn-outline" id="ibtn-${data.id}" onclick="startRename(${data.id})">Rename</button>
+          <button class="btn btn-sm btn-secondary" onclick="toggleInstrument(${data.id})">Deactivate</button>
+        </td>`;
+      tbody.appendChild(tr);
+      document.getElementById('newInstrName').value = '';
+      show('instrStatus', 'Instrument added.', 'success');
+    } else {
+      show('instrStatus', data.error, 'danger');
+    }
+  });
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function show(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = `status-msg status-${type}`;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 4000);
+}
+</script>
+{% endblock %}

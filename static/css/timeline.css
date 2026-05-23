@@ -1,0 +1,159 @@
+/* ===== Grid card ===== */
+.grid-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.grid-card-header {
+  background: #1e40af;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.6rem 1rem;
+  letter-spacing: 0.02em;
+}
+
+.grid-scroll {
+  overflow-x: auto;
+}
+
+/* ===== Timeline table ===== */
+.timeline-table {
+  border-collapse: collapse;
+  min-width: 560px;
+  width: 100%;
+}
+
+.hour-label-head {
+  width: 56px;
+  min-width: 56px;
+}
+
+.date-head {
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #374151;
+  padding: 0.4rem 0.25rem;
+  border-bottom: 1px solid #e5e7eb;
+  border-left: 1px solid #e5e7eb;
+  min-width: 90px;
+}
+
+.date-head span {
+  display: block;
+  font-weight: 400;
+  color: #6b7280;
+  font-size: 0.72rem;
+}
+
+.date-head.today {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.date-head.today span { color: #3b82f6; }
+
+.hour-label {
+  font-size: 0.72rem;
+  color: #6b7280;
+  text-align: right;
+  padding: 0 6px 0 4px;
+  white-space: nowrap;
+  vertical-align: top;
+  border-right: 1px solid #e5e7eb;
+  border-bottom: 1px solid #f3f4f6;
+  width: 56px;
+}
+
+/* ===== Slot cells ===== */
+.slot {
+  border-left: 1px solid #e5e7eb;
+  border-bottom: 1px solid #f3f4f6;
+  height: 38px;
+  min-width: 90px;
+  position: relative;
+  transition: background 0.1s;
+}
+
+.slot-available {
+  background: #dcfce7;
+  cursor: pointer;
+}
+
+.slot-available:hover {
+  background: #bbf7d0;
+}
+
+.slot-booked {
+  background: #fee2e2;
+  cursor: default;
+}
+
+.slot-booked-mine {
+  background: #fde68a;
+  cursor: default;
+}
+
+.slot-selecting {
+  background: #bfdbfe !important;
+  cursor: crosshair;
+}
+
+.slot-past {
+  background: #f9fafb;
+  cursor: not-allowed;
+}
+
+/* Booking label inside booked cell */
+.slot-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #991b1b;
+  pointer-events: none;
+  padding: 0 2px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.slot-booked-mine .slot-label {
+  color: #92400e;
+}
+
+/* ===== Legend ===== */
+.grid-legend {
+  display: flex;
+  gap: 1.25rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: #4b5563;
+}
+
+.legend-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(0,0,0,0.08);
+}
+
+.legend-available { background: #dcfce7; }
+.legend-booked    { background: #fee2e2; }
+.legend-mine      { background: #fde68a; }
+.legend-selecting { background: #bfdbfe; }
+.legend-past      { background: #f9fafb; border-color: #e5e7eb; }

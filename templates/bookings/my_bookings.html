@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block title %}My Bookings{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>My Bookings</h1>
+</div>
+
+<h2 class="section-title">Upcoming</h2>
+{% if upcoming %}
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Instrument</th>
+      <th>Date</th>
+      <th>Time</th>
+      <th>Duration</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody id="upcomingBody">
+    {% for b in upcoming %}
+    <tr id="row-{{ b.id }}">
+      <td>{{ b.instrument.name }}</td>
+      <td>{{ b.date.strftime('%a, %b %d %Y') }}</td>
+      <td>{{ b.time_display }}</td>
+      <td>{{ b.duration }}h</td>
+      <td>
+        <button class="btn btn-danger btn-sm" onclick="cancelBooking({{ b.id }})">Cancel</button>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty-state">You have no upcoming bookings. <a href="{{ url_for('bookings.index') }}">Book an instrument</a>.</p>
+{% endif %}
+
+{% if past %}
+<h2 class="section-title" style="margin-top:2rem">Past (last 20)</h2>
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Instrument</th>
+      <th>Date</th>
+      <th>Time</th>
+      <th>Duration</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for b in past %}
+    <tr class="past-row">
+      <td>{{ b.instrument.name }}</td>
+      <td>{{ b.date.strftime('%a, %b %d %Y') }}</td>
+      <td>{{ b.time_display }}</td>
+      <td>{{ b.duration }}h</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<div id="cancelStatus" class="status-msg" style="display:none"></div>
+
+<script>
+const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+
+function cancelBooking(id) {
+  if (!confirm('Cancel this booking?')) return;
+  fetch(`/cancel/${id}`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      const row = document.getElementById(`row-${id}`);
+      if (row) row.remove();
+      showStatus('cancelStatus', 'Booking cancelled.', 'success');
+    } else {
+      showStatus('cancelStatus', data.error || 'Failed to cancel.', 'danger');
+    }
+  })
+  .catch(() => showStatus('cancelStatus', 'Network error.', 'danger'));
+}
+
+function showStatus(elId, msg, type) {
+  const el = document.getElementById(elId);
+  el.textContent = msg;
+  el.className = `status-msg status-${type}`;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+</script>
+{% endblock %}
