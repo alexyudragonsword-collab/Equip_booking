@@ -344,3 +344,13 @@ input:focus, select:focus {
 }
 .popover-inner p { font-size: 0.9rem; margin-bottom: 0.75rem; color: var(--gray-700); }
 .popover-btns { display: flex; gap: 0.5rem; }
+
+/* ===== Error page ===== */
+.error-page {
+  text-align: center;
+  padding: 4rem 1rem;
+  max-width: 480px;
+  margin: 0 auto;
+}
+.error-page h1 { font-size: 1.75rem; margin-bottom: 0.5rem; }
+.error-page p { color: var(--gray-600); margin-bottom: 1.5rem; }

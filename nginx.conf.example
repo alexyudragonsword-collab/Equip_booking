@@ -1,0 +1,53 @@
+# Sample nginx reverse-proxy config for self-hosted deployment.
+# Replace `booking.example.com` with your domain and wire up TLS via
+# certbot, Cloudflare, or your platform of choice.
+
+upstream equip_booking {
+    server 127.0.0.1:8000;
+    keepalive 32;
+}
+
+server {
+    listen 80;
+    server_name booking.example.com;
+
+    # Redirect to HTTPS — uncomment once TLS is set up
+    # return 301 https://$host$request_uri;
+
+    client_max_body_size 1m;
+
+    location /static/ {
+        alias /srv/equip_booking/static/;
+        expires 30d;
+        access_log off;
+    }
+
+    location / {
+        proxy_pass http://equip_booking;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_read_timeout 60s;
+        proxy_connect_timeout 5s;
+    }
+
+    location /healthz {
+        proxy_pass http://equip_booking/healthz;
+        access_log off;
+    }
+}
+
+# Example HTTPS server block (after `certbot --nginx` or similar):
+#
+# server {
+#     listen 443 ssl http2;
+#     server_name booking.example.com;
+#
+#     ssl_certificate     /etc/letsencrypt/live/booking.example.com/fullchain.pem;
+#     ssl_certificate_key /etc/letsencrypt/live/booking.example.com/privkey.pem;
+#     ssl_protocols       TLSv1.2 TLSv1.3;
+#
+#     # ...same location blocks as above...
+# }

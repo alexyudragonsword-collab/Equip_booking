@@ -1,0 +1,27 @@
+# Render Blueprint (https://render.com/docs/blueprint-spec)
+# Note: persistent disks are only available on paid plans. On the free plan
+# the SQLite file is lost on each redeploy.
+
+services:
+  - type: web
+    name: equip-booking
+    runtime: docker
+    plan: starter            # change to 'free' to skip the persistent disk
+    healthCheckPath: /healthz
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_ENV
+        value: production
+      - key: FORCE_HTTPS
+        value: "1"
+      - key: DATABASE_URL
+        value: sqlite:////data/booking.db
+      - key: ADMIN_EMAIL
+        sync: false           # set manually in Render dashboard
+      - key: ADMIN_PASSWORD
+        sync: false           # set manually in Render dashboard
+    disk:
+      name: booking-data
+      mountPath: /data
+      sizeGB: 1
