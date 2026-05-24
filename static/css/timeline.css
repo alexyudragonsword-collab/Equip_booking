@@ -9,13 +9,19 @@
 }
 
 .grid-card-header {
-  background: #1e40af;
   color: #fff;
   font-weight: 600;
   font-size: 0.95rem;
   padding: 0.6rem 1rem;
   letter-spacing: 0.02em;
 }
+
+/* Per-instrument banner colours (cycles every 5) */
+.hdr-0 { background: #1e40af; } /* blue   — FESEM  */
+.hdr-1 { background: #065f46; } /* green  — XRD    */
+.hdr-2 { background: #6b21a8; } /* purple — UV-VIS */
+.hdr-3 { background: #9a3412; } /* orange — AFM    */
+.hdr-4 { background: #0f766e; } /* teal   — PVD    */
 
 .grid-scroll {
   overflow-x: auto;

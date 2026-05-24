@@ -32,7 +32,7 @@
 <div id="visualSection">
   {% for instr in instruments %}
   <div class="grid-card">
-    <div class="grid-card-header">{{ instr.name }}</div>
+    <div class="grid-card-header hdr-{{ loop.index0 % 5 }}">{{ instr.name }}</div>
     <div class="grid-scroll">
       <table class="timeline-table" data-instrument="{{ instr.id }}">
         <thead>

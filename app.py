@@ -66,6 +66,11 @@ def _ensure_sqlite_dir(app):
             os.makedirs(db_dir, exist_ok=True)
 
 
+DEFAULT_INSTRUMENTS = ['FESEM', 'XRD', 'UV-VIS', 'AFM', 'PVD']
+_OLD_DEFAULT_INSTRUMENTS = ['Instrument 1', 'Instrument 2', 'Instrument 3',
+                            'Instrument 4', 'Instrument 5']
+
+
 def _auto_init_db(app):
     """On startup: create tables, seed instruments, optionally create initial admin."""
     from models import User, Instrument
@@ -73,11 +78,21 @@ def _auto_init_db(app):
     _migrate_sqlite(app)
 
     if Instrument.query.count() == 0:
-        for name in ['Instrument 1', 'Instrument 2', 'Instrument 3',
-                     'Instrument 4', 'Instrument 5']:
+        for name in DEFAULT_INSTRUMENTS:
             db.session.add(Instrument(name=name))
         db.session.commit()
-        app.logger.info('Seeded 5 default instruments.')
+        app.logger.info('Seeded default instruments: %s', DEFAULT_INSTRUMENTS)
+    else:
+        # Rename any instruments that still carry the old placeholder names
+        renamed = False
+        for old, new in zip(_OLD_DEFAULT_INSTRUMENTS, DEFAULT_INSTRUMENTS):
+            instr = Instrument.query.filter_by(name=old).first()
+            if instr and not Instrument.query.filter_by(name=new).first():
+                app.logger.info('Renaming default instrument: %s → %s', old, new)
+                instr.name = new
+                renamed = True
+        if renamed:
+            db.session.commit()
 
     admin_email = app.config.get('ADMIN_EMAIL')
     admin_password = app.config.get('ADMIN_PASSWORD')
