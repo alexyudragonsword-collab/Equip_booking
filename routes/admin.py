@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, jsonify, abort, current_a
 from flask_login import login_required, current_user
 from extensions import db
 from models import User, Instrument, Booking
-from mailer import notify_booking_cancelled
+from mailer import notify_booking_cancelled, test_send
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -211,3 +211,32 @@ def delete_user(user_id):
     db.session.delete(user)
     db.session.commit()
     return jsonify({'success': True})
+
+
+@admin_bp.route('/settings')
+@login_required
+@admin_required
+def settings():
+    cfg = current_app.config
+    email_configured = bool(cfg.get('MAIL_SERVER') and cfg.get('MAIL_USERNAME') and cfg.get('MAIL_PASSWORD'))
+    notify_to = cfg.get('NOTIFY_ADMIN_EMAIL') or '(not set)'
+    mail_server = cfg.get('MAIL_SERVER') or '(not set)'
+    mail_username = cfg.get('MAIL_USERNAME') or '(not set)'
+    return render_template(
+        'admin/settings.html',
+        email_configured=email_configured,
+        notify_to=notify_to,
+        mail_server=mail_server,
+        mail_username=mail_username,
+    )
+
+
+@admin_bp.route('/settings/test-email', methods=['POST'])
+@login_required
+@admin_required
+def test_email():
+    to = current_app.config.get('NOTIFY_ADMIN_EMAIL') or current_app.config.get('ADMIN_EMAIL')
+    if not to:
+        return jsonify({'success': False, 'error': 'NOTIFY_ADMIN_EMAIL is not configured.'}), 400
+    ok, message = test_send(current_app._get_current_object(), to)
+    return jsonify({'success': ok, 'message': message})

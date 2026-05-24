@@ -73,3 +73,59 @@
   .admin-layout { flex-direction: column; }
   .admin-sidebar { width: 100%; position: static; }
 }
+
+/* ===== Settings page ===== */
+.settings-section {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+}
+
+.settings-section h2 {
+  font-size: 1.1rem;
+  margin: 0 0 0.5rem;
+}
+
+.settings-table th {
+  width: 160px;
+  font-weight: 600;
+  color: #374151;
+  vertical-align: top;
+}
+
+.settings-hint {
+  display: block;
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+}
+
+.test-email-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.settings-hint-block {
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.settings-hint-block h3 {
+  font-size: 0.95rem;
+  margin: 0 0 0.5rem;
+}
+
+.settings-hint-block ol {
+  margin: 0;
+  padding-left: 1.25rem;
+  line-height: 1.8;
+}

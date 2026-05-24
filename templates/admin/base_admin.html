@@ -11,6 +11,7 @@
       <a href="{{ url_for('admin.bookings') }}" {% if request.endpoint == 'admin.bookings' %}class="active"{% endif %}>All Bookings</a>
       <a href="{{ url_for('admin.instruments') }}" {% if request.endpoint == 'admin.instruments' %}class="active"{% endif %}>Instruments</a>
       <a href="{{ url_for('admin.users') }}" {% if request.endpoint == 'admin.users' %}class="active"{% endif %}>Users</a>
+      <a href="{{ url_for('admin.settings') }}" {% if request.endpoint == 'admin.settings' %}class="active"{% endif %}>Settings</a>
     </nav>
   </aside>
   <main class="admin-main">

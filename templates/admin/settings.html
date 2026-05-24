@@ -1,0 +1,95 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Admin – Settings{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+  <h1>Settings</h1>
+</div>
+
+<section class="settings-section">
+  <h2>Email Notifications</h2>
+  <p>Booking and cancellation notifications are sent to the admin email address below.</p>
+
+  <table class="data-table settings-table">
+    <tbody>
+      <tr>
+        <th>Status</th>
+        <td>
+          {% if email_configured %}
+            <span class="badge badge-active">Configured</span>
+          {% else %}
+            <span class="badge badge-inactive">Not configured</span>
+            <span class="settings-hint">
+              Set <code>MAIL_SERVER</code>, <code>MAIL_USERNAME</code>, and <code>MAIL_PASSWORD</code> environment variables.
+            </span>
+          {% endif %}
+        </td>
+      </tr>
+      <tr>
+        <th>SMTP Server</th>
+        <td><code>{{ mail_server }}</code></td>
+      </tr>
+      <tr>
+        <th>SMTP Username</th>
+        <td><code>{{ mail_username }}</code></td>
+      </tr>
+      <tr>
+        <th>Notify address</th>
+        <td><code>{{ notify_to }}</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  {% if email_configured %}
+  <div class="test-email-row">
+    <button class="btn btn-primary" id="btnTestEmail" onclick="sendTestEmail()">Send Test Email</button>
+    <span id="testEmailStatus" class="status-msg" style="display:none"></span>
+  </div>
+  {% endif %}
+
+  <div class="settings-hint-block">
+    <h3>Gmail setup</h3>
+    <ol>
+      <li>Enable 2-Step Verification on your Google account.</li>
+      <li>Go to <strong>Google Account → Security → App passwords</strong> and create an App Password.</li>
+      <li>Set <code>MAIL_SERVER=smtp.gmail.com</code>, <code>MAIL_PORT=587</code>, <code>MAIL_USE_TLS=1</code>.</li>
+      <li>Set <code>MAIL_USERNAME</code> to your Gmail address and <code>MAIL_PASSWORD</code> to the App Password (not your login password).</li>
+      <li>Set <code>NOTIFY_ADMIN_EMAIL</code> to the address that should receive notifications.</li>
+    </ol>
+  </div>
+</section>
+
+{% if email_configured %}
+<script>
+const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+
+function sendTestEmail() {
+  const btn = document.getElementById('btnTestEmail');
+  const status = document.getElementById('testEmailStatus');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  status.style.display = 'none';
+
+  fetch('/admin/settings/test-email', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF },
+  })
+  .then(r => r.json())
+  .then(data => {
+    btn.disabled = false;
+    btn.textContent = 'Send Test Email';
+    status.textContent = data.message || (data.success ? 'Sent!' : 'Failed.');
+    status.className = `status-msg status-${data.success ? 'success' : 'danger'}`;
+    status.style.display = 'inline-block';
+  })
+  .catch(err => {
+    btn.disabled = false;
+    btn.textContent = 'Send Test Email';
+    status.textContent = `Request failed: ${err.message}`;
+    status.className = 'status-msg status-danger';
+    status.style.display = 'inline-block';
+  });
+}
+</script>
+{% endif %}
+{% endblock %}

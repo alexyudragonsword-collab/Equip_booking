@@ -16,7 +16,9 @@ def _send(app, subject, body_text, to_email):
     use_ssl  = cfg.get('MAIL_USE_SSL', False)
 
     if not server or not username or not password:
-        app.logger.debug('Email not configured — skipping notification.')
+        app.logger.warning(
+            'Email not configured (MAIL_SERVER/MAIL_USERNAME/MAIL_PASSWORD missing) — skipping notification.'
+        )
         return
 
     try:
@@ -51,6 +53,50 @@ def _async(app, subject, body, to_email):
         args=(app, subject, body, to_email),
         daemon=True,
     ).start()
+
+
+def test_send(app, to_email):
+    """Synchronous test send — returns (ok: bool, message: str)."""
+    cfg = app.config
+    server   = cfg.get('MAIL_SERVER')
+    port     = cfg.get('MAIL_PORT', 587)
+    username = cfg.get('MAIL_USERNAME')
+    password = cfg.get('MAIL_PASSWORD')
+    sender   = cfg.get('MAIL_SENDER') or username
+    use_tls  = cfg.get('MAIL_USE_TLS', True)
+    use_ssl  = cfg.get('MAIL_USE_SSL', False)
+
+    if not server or not username or not password:
+        missing = [k for k, v in [('MAIL_SERVER', server), ('MAIL_USERNAME', username), ('MAIL_PASSWORD', password)] if not v]
+        return False, f"Missing env vars: {', '.join(missing)}"
+
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = '[Test] Instrument Booking — email config check'
+        msg['From']    = sender
+        msg['To']      = to_email
+        msg.attach(MIMEText(
+            'This is a test email from your Instrument Booking system.\n'
+            'If you received this, your SMTP configuration is working correctly.',
+            'plain', 'utf-8'
+        ))
+
+        if use_ssl:
+            conn = smtplib.SMTP_SSL(server, port, timeout=10)
+        else:
+            conn = smtplib.SMTP(server, port, timeout=10)
+
+        with conn:
+            conn.ehlo()
+            if use_tls and not use_ssl:
+                conn.starttls()
+                conn.ehlo()
+            conn.login(username, password)
+            conn.sendmail(sender, [to_email], msg.as_string())
+
+        return True, f'Test email sent successfully to {to_email}.'
+    except Exception as exc:
+        return False, f'Send failed: {exc}'
 
 
 # ── Public helpers ────────────────────────────────────────────────────────────
