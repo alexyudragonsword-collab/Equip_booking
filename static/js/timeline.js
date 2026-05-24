@@ -174,7 +174,7 @@ function showPopover(anchorCell) {
 
   const rect = anchorCell.getBoundingClientRect();
   popover.style.display = 'block';
-  popover.style.top = (window.scrollY + rect.bottom + 8) + 'px';
+  popover.style.top = (rect.bottom + 8) + 'px';
   popover.style.left = Math.min(rect.left, window.innerWidth - 360) + 'px';
 }
 
