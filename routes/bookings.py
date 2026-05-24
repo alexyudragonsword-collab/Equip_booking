@@ -78,6 +78,7 @@ def index():
 
     today = date.today()
     today_str = today.isoformat()
+    max_booking_date_str = (today + timedelta(days=7)).isoformat()
 
     return render_template(
         'bookings/index.html',
@@ -91,6 +92,7 @@ def index():
         next_week_str=next_week_str,
         today_str=today_str,
         monday=monday,
+        max_booking_date_str=max_booking_date_str,
     )
 
 
@@ -123,6 +125,10 @@ def book():
     # Rule 4: no past dates
     if booking_date < date.today():
         return jsonify({'success': False, 'error': 'Cannot book a date in the past.'}), 400
+
+    # Rule 4b: regular users can only book within 7 days from today
+    if not current_user.is_admin and booking_date > date.today() + timedelta(days=7):
+        return jsonify({'success': False, 'error': 'You can only book slots within the next 7 days.'}), 400
 
     # Rule 5: instrument exists
     instrument = Instrument.query.filter_by(id=instrument_id, is_active=True).first()

@@ -9,6 +9,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (!fInstrument) return; // page doesn't have form section
 
+  // Restrict max date for non-admins
+  if (!IS_ADMIN) {
+    fDate.max = MAX_BOOKING_DATE;
+  }
+
   // Disable weekends in date input via JS (HTML min/max can't block weekends)
   fDate.addEventListener('input', () => {
     const d = new Date(fDate.value + 'T00:00:00');

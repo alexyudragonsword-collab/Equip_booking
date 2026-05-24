@@ -126,6 +126,8 @@
   const WEEK_DATES = {{ week_dates_json | safe }};
   const CURRENT_USER_ID = {{ current_user.id }};
   const TODAY_STR = '{{ today_str }}';
+  const IS_ADMIN = {{ current_user.is_admin | tojson }};
+  const MAX_BOOKING_DATE = '{{ max_booking_date_str }}';
 </script>
 {% endblock %}
 

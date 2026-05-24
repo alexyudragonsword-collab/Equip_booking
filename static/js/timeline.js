@@ -29,6 +29,16 @@ function renderGrid() {
       return;
     }
 
+    // Beyond 7-day advance booking limit (non-admins only)
+    if (!IS_ADMIN) {
+      const maxDate = new Date(MAX_BOOKING_DATE + 'T00:00:00');
+      if (cellDate > maxDate) {
+        cell.classList.add('slot-past');
+        cell.title = 'Bookings can only be made up to 7 days in advance.';
+        return;
+      }
+    }
+
     const instrBookings = (BOOKINGS_DATA[instrId] || {})[dateStr] || [];
     const booking = instrBookings.find(b => b.start_hour <= hour && hour < b.end_hour);
 
