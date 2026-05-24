@@ -62,6 +62,7 @@ let sel = {
 };
 
 function startSelection(e, cell) {
+  if (e.button !== 0) return;  // left click only; ignore right/middle
   e.preventDefault();
   clearSelection();
 

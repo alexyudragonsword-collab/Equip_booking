@@ -1,9 +1,10 @@
 import json
 from datetime import date, timedelta
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, current_app
 from flask_login import login_required, current_user
 from extensions import db
 from models import Instrument, Booking
+from mailer import notify_booking_confirmed, notify_booking_cancelled
 
 bookings_bp = Blueprint('bookings', __name__)
 
@@ -157,6 +158,8 @@ def book():
     db.session.add(booking)
     db.session.commit()
 
+    notify_booking_confirmed(current_app._get_current_object(), booking, instrument, current_user)
+
     return jsonify({
         'success': True,
         'booking': {
@@ -179,8 +182,23 @@ def cancel(booking_id):
     if booking.user_id != current_user.id and not current_user.is_admin:
         return jsonify({'success': False, 'error': 'Not authorized.'}), 403
 
+    # Capture info before delete
+    info = {
+        'user_name':       booking.user.name,
+        'department':      booking.user.department,
+        'user_email':      booking.user.email,
+        'phone':           booking.user.phone,
+        'supervisor_name': booking.user.supervisor_name,
+        'instrument':      booking.instrument.name,
+        'date':            booking.date.strftime('%A, %d %B %Y'),
+        'time':            booking.time_display,
+    }
+    cancelled_by = current_user.name
+
     db.session.delete(booking)
     db.session.commit()
+
+    notify_booking_cancelled(current_app._get_current_object(), info, cancelled_by)
     return jsonify({'success': True})
 
 

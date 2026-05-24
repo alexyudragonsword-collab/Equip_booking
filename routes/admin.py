@@ -1,9 +1,10 @@
 from functools import wraps
 from datetime import date, timedelta
-from flask import Blueprint, render_template, request, jsonify, abort
+from flask import Blueprint, render_template, request, jsonify, abort, current_app
 from flask_login import login_required, current_user
 from extensions import db
 from models import User, Instrument, Booking
+from mailer import notify_booking_cancelled
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -71,8 +72,23 @@ def cancel_booking(booking_id):
     booking = db.session.get(Booking, booking_id)
     if not booking:
         return jsonify({'success': False, 'error': 'Booking not found.'}), 404
+
+    info = {
+        'user_name':       booking.user.name,
+        'department':      booking.user.department,
+        'user_email':      booking.user.email,
+        'phone':           booking.user.phone,
+        'supervisor_name': booking.user.supervisor_name,
+        'instrument':      booking.instrument.name,
+        'date':            booking.date.strftime('%A, %d %B %Y'),
+        'time':            booking.time_display,
+    }
+    cancelled_by = f'{current_user.name} (admin)'
+
     db.session.delete(booking)
     db.session.commit()
+
+    notify_booking_cancelled(current_app._get_current_object(), info, cancelled_by)
     return jsonify({'success': True})
 
 

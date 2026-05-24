@@ -50,3 +50,17 @@ class Config:
     # create one automatically on startup. Useful for PaaS first deploy.
     ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL')
     ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
+
+    # ── Email notifications ──────────────────────────────────────────────────
+    # SMTP settings for sending booking/cancellation notifications to admin.
+    # Leave MAIL_SERVER unset to disable email entirely (safe default).
+    MAIL_SERVER   = os.environ.get('MAIL_SERVER')            # e.g. smtp.gmail.com
+    MAIL_PORT     = int(os.environ.get('MAIL_PORT', '587'))
+    MAIL_USE_TLS  = os.environ.get('MAIL_USE_TLS', '1') == '1'
+    MAIL_USE_SSL  = os.environ.get('MAIL_USE_SSL', '0') == '1'
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')          # login user
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')          # login password
+    MAIL_SENDER   = os.environ.get('MAIL_SENDER') or os.environ.get('MAIL_USERNAME')
+    # Email address that receives booking/cancellation notifications.
+    # Defaults to ADMIN_EMAIL if not set separately.
+    NOTIFY_ADMIN_EMAIL = os.environ.get('NOTIFY_ADMIN_EMAIL') or os.environ.get('ADMIN_EMAIL')
