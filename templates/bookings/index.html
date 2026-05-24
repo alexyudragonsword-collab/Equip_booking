@@ -19,6 +19,17 @@
   <a href="{{ url_for('bookings.index', week=next_week_str) }}" class="btn btn-outline">Next Week &#8594;</a>
 </div>
 
+<!-- Instrument filter -->
+<div class="instr-filter-bar">
+  <label for="instrFilter">Instrument</label>
+  <select id="instrFilter" onchange="filterInstrument(this.value)">
+    <option value="">All instruments</option>
+    {% for instr in instruments %}
+    <option value="{{ instr.id }}">{{ instr.name }}</option>
+    {% endfor %}
+  </select>
+</div>
+
 <!-- Mode toggle -->
 <div class="mode-toggle">
   <button class="mode-btn active" id="btnVisual" onclick="setMode('visual')">Visual Selection</button>
@@ -31,7 +42,7 @@
 <!-- ===== VISUAL GRID ===== -->
 <div id="visualSection">
   {% for instr in instruments %}
-  <div class="grid-card">
+  <div class="grid-card" data-instrument-id="{{ instr.id }}">
     <div class="grid-card-header hdr-{{ loop.index0 % 5 }}">{{ instr.name }}</div>
     <div class="grid-scroll">
       <table class="timeline-table" data-instrument="{{ instr.id }}">
@@ -128,6 +139,12 @@
   const TODAY_STR = '{{ today_str }}';
   const IS_ADMIN = {{ current_user.is_admin | tojson }};
   const MAX_BOOKING_DATE = '{{ max_booking_date_str }}';
+
+  function filterInstrument(instrId) {
+    document.querySelectorAll('#visualSection .grid-card').forEach(card => {
+      card.style.display = (!instrId || card.dataset.instrumentId === instrId) ? '' : 'none';
+    });
+  }
 </script>
 {% endblock %}
 

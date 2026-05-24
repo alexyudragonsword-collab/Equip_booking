@@ -226,6 +226,32 @@ input:focus, select:focus {
 }
 .week-label { font-weight: 600; font-size: 1rem; }
 
+/* ===== Instrument filter bar ===== */
+.instr-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.instr-filter-bar label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--gray-700);
+  white-space: nowrap;
+}
+
+.instr-filter-bar select {
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  background: #fff;
+  color: var(--gray-800);
+  cursor: pointer;
+  min-width: 180px;
+}
+
 /* ===== Mode toggle ===== */
 .mode-toggle {
   display: flex;
