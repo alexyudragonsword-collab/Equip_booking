@@ -17,8 +17,12 @@
 
     <div class="form-group">
       <label for="department">Department</label>
-      <input type="text" id="department" name="department" required
-             value="{{ department or '' }}" placeholder="Physics / Chemistry / ...">
+      <select id="department" name="department" required>
+        <option value="" disabled {% if not department %}selected{% endif %}>— Select department —</option>
+        {% for d in departments %}
+        <option value="{{ d }}" {% if department == d %}selected{% endif %}>{{ d }}</option>
+        {% endfor %}
+      </select>
     </div>
 
     <div class="form-group">

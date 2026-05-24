@@ -5,6 +5,8 @@ from models import User
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
+DEPARTMENTS = ['SHARE', 'CREATE-others']
+
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
@@ -23,8 +25,8 @@ def register():
         errors = []
         if not name:
             errors.append('Full name is required.')
-        if not department:
-            errors.append('Department is required.')
+        if department not in DEPARTMENTS:
+            errors.append('Please select a valid department.')
         if not email:
             errors.append('Email is required.')
         if not phone:
@@ -42,6 +44,7 @@ def register():
             for e in errors:
                 flash(e, 'danger')
             return render_template('auth/register.html',
+                                   departments=DEPARTMENTS,
                                    name=name, department=department, email=email,
                                    phone=phone, supervisor_name=supervisor_name)
 
@@ -53,7 +56,7 @@ def register():
         flash('Registration successful. Please log in.', 'success')
         return redirect(url_for('auth.login'))
 
-    return render_template('auth/register.html')
+    return render_template('auth/register.html', departments=DEPARTMENTS)
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])

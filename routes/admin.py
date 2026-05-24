@@ -234,12 +234,20 @@ def toggle_instrument(instrument_id):
     return jsonify({'success': True, 'is_active': instr.is_active})
 
 
+DEPARTMENTS = ['SHARE', 'CREATE-others']
+
+
 @admin_bp.route('/users')
 @login_required
 @admin_required
 def users():
-    all_users = User.query.order_by(User.created_at).all()
-    return render_template('admin/users.html', users=all_users)
+    dept_q = request.args.get('dept', '').strip()
+    query = User.query
+    if dept_q:
+        query = query.filter(User.department == dept_q)
+    all_users = query.order_by(User.created_at).all()
+    return render_template('admin/users.html', users=all_users,
+                           departments=DEPARTMENTS, dept_q=dept_q)
 
 
 @admin_bp.route('/users/add', methods=['POST'])
@@ -260,6 +268,8 @@ def add_user():
 
     if not name or not department or not email or not phone or not supervisor_name or not password:
         return jsonify({'success': False, 'error': 'All fields except admin flag are required.'}), 400
+    if department not in DEPARTMENTS:
+        return jsonify({'success': False, 'error': 'Invalid department.'}), 400
     if len(password) < 8:
         return jsonify({'success': False, 'error': 'Password must be at least 8 characters.'}), 400
     if User.query.filter_by(email=email).first():
