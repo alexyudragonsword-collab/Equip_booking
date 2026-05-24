@@ -31,6 +31,7 @@
       </td>
       <td class="action-cell">
         <button class="btn btn-sm btn-outline" id="ibtn-{{ instr.id }}"
+                data-state="idle"
                 onclick="startRename({{ instr.id }})">Rename</button>
         <button class="btn btn-sm btn-secondary"
                 onclick="toggleInstrument({{ instr.id }})">
@@ -59,11 +60,14 @@ const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 function startRename(id) {
   const input = document.getElementById(`iname-${id}`);
   const btn = document.getElementById(`ibtn-${id}`);
-  if (btn.textContent === 'Rename') {
+  if (btn.dataset.state === 'idle') {
     input.disabled = false;
     input.focus();
+    input.select();
     btn.textContent = 'Save';
-    btn.classList.replace('btn-outline', 'btn-primary');
+    btn.dataset.state = 'editing';
+    btn.classList.remove('btn-outline');
+    btn.classList.add('btn-primary');
   } else {
     saveRename(id);
   }
@@ -75,22 +79,33 @@ function saveRename(id) {
   const name = input.value.trim();
   if (!name) { show('instrStatus', 'Name cannot be empty.', 'danger'); return; }
 
+  btn.disabled = true;
   fetch(`/admin/instruments/rename/${id}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
     body: JSON.stringify({ name })
   })
-  .then(r => r.json())
+  .then(r => {
+    if (!r.ok && r.status !== 409) throw new Error(`Server error ${r.status}`);
+    return r.json();
+  })
   .then(data => {
+    btn.disabled = false;
     if (data.success) {
       input.value = data.name;
       input.disabled = true;
       btn.textContent = 'Rename';
-      btn.classList.replace('btn-primary', 'btn-outline');
-      show('instrStatus', 'Instrument renamed.', 'success');
+      btn.dataset.state = 'idle';
+      btn.classList.remove('btn-primary');
+      btn.classList.add('btn-outline');
+      show('instrStatus', 'Instrument renamed successfully.', 'success');
     } else {
       show('instrStatus', data.error, 'danger');
     }
+  })
+  .catch(err => {
+    btn.disabled = false;
+    show('instrStatus', `Request failed: ${err.message}`, 'danger');
   });
 }
 
@@ -117,7 +132,8 @@ function toggleInstrument(id) {
     } else {
       show('instrStatus', data.error, 'danger');
     }
-  });
+  })
+  .catch(() => show('instrStatus', 'Request failed. Please try again.', 'danger'));
 }
 
 function addInstrument() {

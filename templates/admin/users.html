@@ -83,7 +83,8 @@ function deleteUser(id, name) {
     } else {
       show('userStatus', data.error, 'danger');
     }
-  });
+  })
+  .catch(() => show('userStatus', 'Request failed. Please try again.', 'danger'));
 }
 
 function addUser() {
