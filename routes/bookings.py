@@ -168,6 +168,8 @@ def book():
             'booking_id': booking.id,
             'user_id': current_user.id,
             'user_name': current_user.name,
+            'user_email': current_user.email,
+            'user_phone': current_user.phone or '',
             'start_hour': start_hour,
             'end_hour': end_hour,
             'is_mine': True,
