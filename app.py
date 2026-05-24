@@ -97,7 +97,8 @@ def _auto_init_db(app):
     admin_email = app.config.get('ADMIN_EMAIL')
     admin_password = app.config.get('ADMIN_PASSWORD')
     if admin_email and admin_password:
-        if not User.query.filter_by(is_admin=True).first():
+        existing_admin = User.query.filter_by(email=admin_email.lower(), is_admin=True).first()
+        if not existing_admin:
             admin = User(
                 name='Administrator',
                 department='Admin',
@@ -109,6 +110,10 @@ def _auto_init_db(app):
             db.session.add(admin)
             db.session.commit()
             app.logger.info(f'Created initial admin user: {admin_email}')
+        elif not existing_admin.is_protected:
+            existing_admin.is_protected = True
+            db.session.commit()
+            app.logger.info(f'Marked original admin as protected: {admin_email}')
 
 
 def _migrate_sqlite(app):
