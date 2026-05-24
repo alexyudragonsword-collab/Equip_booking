@@ -12,11 +12,11 @@
 
 <!-- Week navigation -->
 <div class="week-nav">
-  <a href="{{ url_for('bookings.index', week=prev_week_str, instr=instr_filter) }}" class="btn btn-outline">&#8592; Previous Week</a>
+  <a href="{{ url_for('bookings.index', week=prev_week_str) }}" class="btn btn-outline">&#8592; Previous Week</a>
   <span class="week-label">
     Week of {{ monday.strftime('%b %d') }} – {{ weekdays[-1].strftime('%b %d, %Y') }}
   </span>
-  <a href="{{ url_for('bookings.index', week=next_week_str, instr=instr_filter) }}" class="btn btn-outline">Next Week &#8594;</a>
+  <a href="{{ url_for('bookings.index', week=next_week_str) }}" class="btn btn-outline">Next Week &#8594;</a>
 </div>
 
 <!-- Instrument filter -->
@@ -25,7 +25,7 @@
   <select id="instrFilter" onchange="filterInstrument(this.value)">
     <option value="">All instruments</option>
     {% for instr in instruments %}
-    <option value="{{ instr.id }}" {% if instr_filter == instr.id|string %}selected{% endif %}>{{ instr.name }}</option>
+    <option value="{{ instr.id }}">{{ instr.name }}</option>
     {% endfor %}
   </select>
 </div>
@@ -141,15 +141,11 @@
   const MAX_BOOKING_DATE = '{{ max_booking_date_str }}';
 
   function filterInstrument(instrId) {
+    localStorage.setItem('instrFilter', instrId);
     document.querySelectorAll('#visualSection .grid-card').forEach(card => {
       card.style.display = (!instrId || card.dataset.instrumentId === instrId) ? '' : 'none';
     });
   }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    const v = document.getElementById('instrFilter').value;
-    if (v) filterInstrument(v);
-  });
 </script>
 {% endblock %}
 

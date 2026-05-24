@@ -61,7 +61,6 @@ def build_bookings_data(instruments, weekdays):
 @login_required
 def index():
     week_param = request.args.get('week', '')
-    instr_filter = request.args.get('instr', '')
     monday, weekdays = get_week_dates(week_param or None)
 
     iso_year, iso_week, _ = monday.isocalendar()
@@ -94,7 +93,6 @@ def index():
         today_str=today_str,
         monday=monday,
         max_booking_date_str=max_booking_date_str,
-        instr_filter=instr_filter,
     )
 
 

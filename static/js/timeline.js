@@ -269,4 +269,15 @@ function showStatus(elId, msg, type) {
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', () => {
   renderGrid();
+  // Restore instrument filter after grid is ready
+  const sel = document.getElementById('instrFilter');
+  if (sel) {
+    const saved = localStorage.getItem('instrFilter') || '';
+    if (saved && [...sel.options].some(o => o.value === saved)) {
+      sel.value = saved;
+    } else {
+      localStorage.removeItem('instrFilter');
+    }
+    filterInstrument(sel.value);
+  }
 });
