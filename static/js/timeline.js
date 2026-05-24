@@ -35,13 +35,16 @@ function renderGrid() {
     if (booking) {
       const isMine = booking.user_id === CURRENT_USER_ID;
       cell.classList.add(isMine ? 'slot-booked-mine' : 'slot-booked');
-      cell.title = `${booking.user_name}: ${booking.start_hour}:00 – ${booking.end_hour}:00`;
-      // Show initials label only on the first hour of the booking
+      const timeStr = `${pad(booking.start_hour)}:00 – ${pad(booking.end_hour)}:00`;
+      const tipLines = [booking.user_name, timeStr];
+      if (booking.user_email) tipLines.push(booking.user_email);
+      if (booking.user_phone) tipLines.push(booking.user_phone);
+      cell.title = tipLines.join('\n');
+      // Show full name only on the first hour of the booking
       if (hour === booking.start_hour) {
-        const initials = booking.user_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
         const label = document.createElement('div');
         label.className = 'slot-label';
-        label.textContent = initials;
+        label.textContent = booking.user_name;
         cell.appendChild(label);
       }
     } else {

@@ -48,6 +48,8 @@ def build_bookings_data(instruments, weekdays):
                 'booking_id': b.id,
                 'user_id': b.user_id,
                 'user_name': b.user.name,
+                'user_email': b.user.email,
+                'user_phone': b.user.phone or '',
                 'start_hour': b.start_hour,
                 'end_hour': b.end_hour,
                 'is_mine': b.user_id == current_user.id,
