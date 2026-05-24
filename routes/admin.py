@@ -155,8 +155,8 @@ def add_user():
     password        = data.get('password', '')
     is_admin        = bool(data.get('is_admin', False))
 
-    if not name or not department or not email or not password:
-        return jsonify({'success': False, 'error': 'Name, department, email and password are required.'}), 400
+    if not name or not department or not email or not phone or not supervisor_name or not password:
+        return jsonify({'success': False, 'error': 'All fields except admin flag are required.'}), 400
     if len(password) < 8:
         return jsonify({'success': False, 'error': 'Password must be at least 8 characters.'}), 400
     if User.query.filter_by(email=email).first():

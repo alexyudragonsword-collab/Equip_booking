@@ -59,11 +59,11 @@
       <input type="email" id="uEmail" placeholder="jane@example.com">
     </div>
     <div class="form-group">
-      <label>Phone <small>(optional)</small></label>
+      <label>Phone <span class="req">*</span></label>
       <input type="tel" id="uPhone" placeholder="+1 555 000 0000">
     </div>
     <div class="form-group">
-      <label>Supervisor Name <small>(optional)</small></label>
+      <label>Supervisor Name <span class="req">*</span></label>
       <input type="text" id="uSupervisor" placeholder="Prof. John Doe">
     </div>
     <div class="form-group">
@@ -110,8 +110,8 @@ function addUser() {
   const password   = document.getElementById('uPassword').value;
   const isAdmin    = document.getElementById('uAdmin').checked;
 
-  if (!name || !dept || !email || !password) {
-    show('userStatus', 'Name, department, email and password are required.', 'danger');
+  if (!name || !dept || !email || !phone || !supervisor || !password) {
+    show('userStatus', 'All fields except admin flag are required.', 'danger');
     return;
   }
 

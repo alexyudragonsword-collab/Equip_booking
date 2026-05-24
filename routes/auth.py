@@ -27,6 +27,10 @@ def register():
             errors.append('Department is required.')
         if not email:
             errors.append('Email is required.')
+        if not phone:
+            errors.append('Phone number is required.')
+        if not supervisor_name:
+            errors.append('Supervisor name is required.')
         if len(password) < 8:
             errors.append('Password must be at least 8 characters.')
         if password != confirm:
