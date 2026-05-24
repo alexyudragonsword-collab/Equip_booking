@@ -125,10 +125,17 @@ document.addEventListener('mouseup', e => {
   if (!sel.cells.length) return;
 
   const lastCell = sel.cells[sel.cells.length - 1];
+  _popoverJustShown = true;   // suppress the click event that immediately follows
   showPopover(lastCell);
 });
 
+let _popoverJustShown = false;
+
 document.addEventListener('click', e => {
+  if (_popoverJustShown) {
+    _popoverJustShown = false;
+    return;  // this click is the tail of the mousedown→mouseup that showed the popover
+  }
   const popover = document.getElementById('bookingPopover');
   if (!popover.contains(e.target)) {
     hidePopover();
