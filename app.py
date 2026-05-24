@@ -103,6 +103,7 @@ def _auto_init_db(app):
                 department='Admin',
                 email=admin_email.lower(),
                 is_admin=True,
+                is_protected=True,
             )
             admin.set_password(admin_password)
             db.session.add(admin)
@@ -118,6 +119,7 @@ def _migrate_sqlite(app):
     new_columns = [
         ('users', 'phone',           'VARCHAR(30)'),
         ('users', 'supervisor_name', 'VARCHAR(100)'),
+        ('users', 'is_protected',    'BOOLEAN NOT NULL DEFAULT 0'),
     ]
     with db.engine.connect() as conn:
         for table, column, col_type in new_columns:

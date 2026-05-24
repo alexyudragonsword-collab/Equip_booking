@@ -305,6 +305,8 @@ def delete_user(user_id):
     user = db.session.get(User, user_id)
     if not user:
         return jsonify({'success': False, 'error': 'User not found.'}), 404
+    if user.is_protected:
+        return jsonify({'success': False, 'error': 'The original Administrator account cannot be deleted.'}), 403
     db.session.delete(user)
     db.session.commit()
     return jsonify({'success': True})

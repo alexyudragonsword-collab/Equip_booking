@@ -15,6 +15,7 @@ class User(UserMixin, db.Model):
     supervisor_name = db.Column(db.String(100), nullable=True)
     password_hash = db.Column(db.String(256), nullable=False)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
+    is_protected = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
     bookings = db.relationship('Booking', backref='user', lazy=True, cascade='all, delete-orphan')

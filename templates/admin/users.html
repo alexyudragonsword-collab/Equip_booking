@@ -63,6 +63,8 @@
       <td>
         {% if u.id == current_user.id %}
         <button class="btn btn-sm btn-danger" disabled title="Cannot delete own account">Delete</button>
+        {% elif u.is_protected %}
+        <button class="btn btn-sm btn-danger" disabled title="Original Administrator account cannot be deleted">Delete</button>
         {% else %}
         <button class="btn btn-sm btn-danger" onclick="deleteUser({{ u.id }}, '{{ u.name | e }}')">Delete</button>
         {% endif %}
