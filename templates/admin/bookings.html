@@ -6,20 +6,97 @@
   <h1>All Bookings</h1>
 </div>
 
-<div class="week-nav">
-  <a href="{{ url_for('admin.bookings', week=prev_week_str) }}" class="btn btn-outline">&#8592; Previous Week</a>
-  <span class="week-label">Week of {{ monday.strftime('%b %d, %Y') }}</span>
-  <a href="{{ url_for('admin.bookings', week=next_week_str) }}" class="btn btn-outline">Next Week &#8594;</a>
+<!-- Filter panel -->
+<div class="filter-card">
+  <form method="get" id="filterForm">
+    <div class="filter-row">
+
+      <div class="filter-group">
+        <label for="periodSelect">Period</label>
+        <select name="period" id="periodSelect" onchange="updatePeriodUI()">
+          <option value="month" {% if period=='month' %}selected{% endif %}>Month</option>
+          <option value="year"  {% if period=='year'  %}selected{% endif %}>Year</option>
+          <option value="range" {% if period=='range' %}selected{% endif %}>Custom Range</option>
+        </select>
+      </div>
+
+      <div class="filter-group" id="grpMonth">
+        <label for="selMonth">Month</label>
+        <select name="month" id="selMonth">
+          {% for m, mname in [(1,'Jan'),(2,'Feb'),(3,'Mar'),(4,'Apr'),(5,'May'),(6,'Jun'),
+                              (7,'Jul'),(8,'Aug'),(9,'Sep'),(10,'Oct'),(11,'Nov'),(12,'Dec')] %}
+          <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ mname }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="filter-group" id="grpYear">
+        <label for="selYear">Year</label>
+        <select name="year" id="selYear">
+          {% for y in years %}
+          <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="filter-group" id="grpFrom">
+        <label for="inpFrom">From</label>
+        <input type="date" name="date_from" id="inpFrom"
+               value="{{ date_from.isoformat() if period == 'range' else '' }}">
+      </div>
+
+      <div class="filter-group" id="grpTo">
+        <label for="inpTo">To</label>
+        <input type="date" name="date_to" id="inpTo"
+               value="{{ date_to.isoformat() if period == 'range' else '' }}">
+      </div>
+
+      <div class="filter-group">
+        <label for="inpUser">User</label>
+        <input type="text" name="user_q" id="inpUser"
+               value="{{ user_q }}" placeholder="Search name…" style="width:130px">
+      </div>
+
+      <div class="filter-group">
+        <label for="selDept">Department</label>
+        <select name="dept" id="selDept">
+          <option value="">All</option>
+          {% for d in departments %}
+          <option value="{{ d }}" {% if d == dept_q %}selected{% endif %}>{{ d }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="filter-group filter-actions">
+        <label>&nbsp;</label>
+        <button type="submit" class="btn btn-primary">Apply</button>
+        <button type="button" class="btn btn-outline" onclick="exportCSV()">Export CSV</button>
+      </div>
+
+    </div>
+  </form>
+</div>
+
+<!-- Summary bar -->
+<div class="results-summary">
+  <span>
+    <strong>{{ bookings|length }}</strong> booking(s) &nbsp;·&nbsp;
+    {{ date_from.strftime('%b %d, %Y') }} – {{ date_to.strftime('%b %d, %Y') }}
+    {% if user_q %}&nbsp;·&nbsp; User: <em>{{ user_q }}</em>{% endif %}
+    {% if dept_q %}&nbsp;·&nbsp; Dept: <em>{{ dept_q }}</em>{% endif %}
+  </span>
 </div>
 
 {% if bookings %}
-<table class="data-table">
+<table class="data-table" id="bookingTable">
   <thead>
     <tr>
       <th>Date</th>
       <th>Instrument</th>
       <th>User</th>
       <th>Department</th>
+      <th>Email</th>
+      <th>Phone</th>
       <th>Time</th>
       <th>Duration</th>
       <th>Action</th>
@@ -28,10 +105,12 @@
   <tbody id="bookingBody">
     {% for b in bookings %}
     <tr id="brow-{{ b.id }}">
-      <td>{{ b.date.strftime('%a, %b %d') }}</td>
+      <td>{{ b.date.strftime('%a, %b %d, %Y') }}</td>
       <td>{{ b.instrument.name }}</td>
       <td>{{ b.user.name }}</td>
       <td>{{ b.user.department }}</td>
+      <td>{{ b.user.email }}</td>
+      <td>{{ b.user.phone or '—' }}</td>
       <td>{{ b.time_display }}</td>
       <td>{{ b.duration }}h</td>
       <td>
@@ -42,13 +121,27 @@
   </tbody>
 </table>
 {% else %}
-<p class="empty-state">No bookings this week.</p>
+<p class="empty-state">No bookings found for the selected filters.</p>
 {% endif %}
 
 <div id="cancelStatus" class="status-msg" style="display:none"></div>
 
 <script>
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+
+function updatePeriodUI() {
+  const p = document.getElementById('periodSelect').value;
+  document.getElementById('grpMonth').style.display = p === 'month' ? '' : 'none';
+  document.getElementById('grpYear').style.display  = p !== 'range' ? '' : 'none';
+  document.getElementById('grpFrom').style.display  = p === 'range' ? '' : 'none';
+  document.getElementById('grpTo').style.display    = p === 'range' ? '' : 'none';
+}
+updatePeriodUI();
+
+function exportCSV() {
+  const params = new URLSearchParams(new FormData(document.getElementById('filterForm')));
+  window.location.href = '/admin/bookings/export?' + params.toString();
+}
 
 function adminCancel(id) {
   if (!confirm('Cancel this booking?')) return;
@@ -60,11 +153,15 @@ function adminCancel(id) {
   .then(data => {
     if (data.success) {
       document.getElementById(`brow-${id}`)?.remove();
+      // Update count in summary
+      const summary = document.querySelector('.results-summary strong');
+      if (summary) summary.textContent = parseInt(summary.textContent) - 1;
       show('cancelStatus', 'Booking cancelled.', 'success');
     } else {
       show('cancelStatus', data.error, 'danger');
     }
-  });
+  })
+  .catch(() => show('cancelStatus', 'Request failed.', 'danger'));
 }
 
 function show(id, msg, type) {

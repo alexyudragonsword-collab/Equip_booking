@@ -1,6 +1,9 @@
+import calendar
+import csv
+import io
 from functools import wraps
 from datetime import date, timedelta
-from flask import Blueprint, render_template, request, jsonify, abort, current_app
+from flask import Blueprint, render_template, request, jsonify, abort, current_app, Response
 from flask_login import login_required, current_user
 from extensions import db
 from models import User, Instrument, Booking
@@ -26,42 +29,126 @@ def index():
     return redirect(url_for('admin.bookings'))
 
 
+def _parse_booking_filters(args):
+    """Parse date range and user/dept filters from request args.
+    Returns (query, date_from, date_to, period, year, month, user_q, dept_q).
+    """
+    today = date.today()
+    period = args.get('period', 'month')
+
+    if period == 'year':
+        try:
+            year = int(args.get('year', today.year))
+        except (ValueError, TypeError):
+            year = today.year
+        date_from = date(year, 1, 1)
+        date_to   = date(year, 12, 31)
+        month = today.month
+    elif period == 'range':
+        try:
+            date_from = date.fromisoformat(args.get('date_from', ''))
+        except (ValueError, TypeError):
+            date_from = today.replace(day=1)
+        try:
+            date_to = date.fromisoformat(args.get('date_to', ''))
+        except (ValueError, TypeError):
+            date_to = today
+        if date_to < date_from:
+            date_to = date_from
+        year  = date_from.year
+        month = date_from.month
+    else:  # month (default)
+        period = 'month'
+        try:
+            year = int(args.get('year', today.year))
+        except (ValueError, TypeError):
+            year = today.year
+        try:
+            month = int(args.get('month', today.month))
+            if not 1 <= month <= 12:
+                month = today.month
+        except (ValueError, TypeError):
+            month = today.month
+        date_from = date(year, month, 1)
+        date_to   = date(year, month, calendar.monthrange(year, month)[1])
+
+    user_q = args.get('user_q', '').strip()
+    dept_q = args.get('dept', '').strip()
+
+    query = (
+        Booking.query
+        .join(User, Booking.user_id == User.id)
+        .filter(Booking.date >= date_from, Booking.date <= date_to)
+    )
+    if user_q:
+        query = query.filter(User.name.ilike(f'%{user_q}%'))
+    if dept_q:
+        query = query.filter(User.department == dept_q)
+
+    query = query.order_by(Booking.date, Booking.instrument_id, Booking.start_hour)
+    return query, date_from, date_to, period, year, month, user_q, dept_q
+
+
 @admin_bp.route('/bookings')
 @login_required
 @admin_required
 def bookings():
-    week_param = request.args.get('week', '')
     today = date.today()
-    if week_param:
-        try:
-            year, week = week_param.split('-W')
-            monday = date.fromisocalendar(int(year), int(week), 1)
-        except Exception:
-            monday = today - timedelta(days=today.weekday())
-    else:
-        monday = today - timedelta(days=today.weekday())
+    query, date_from, date_to, period, year, month, user_q, dept_q = \
+        _parse_booking_filters(request.args)
 
-    sunday = monday + timedelta(days=6)
-    iso_year, iso_week, _ = monday.isocalendar()
-    current_week_str = f'{iso_year}-W{iso_week:02d}'
-
-    prev_monday = monday - timedelta(weeks=1)
-    next_monday = monday + timedelta(weeks=1)
-    py, pw, _ = prev_monday.isocalendar()
-    ny, nw, _ = next_monday.isocalendar()
-
-    all_bookings = Booking.query.filter(
-        Booking.date >= monday,
-        Booking.date <= sunday,
-    ).order_by(Booking.date, Booking.instrument_id, Booking.start_hour).all()
+    all_bookings = query.all()
+    departments = [r[0] for r in
+                   db.session.query(User.department).distinct()
+                   .order_by(User.department).all()]
+    years = list(range(today.year - 3, today.year + 2))
 
     return render_template(
         'admin/bookings.html',
         bookings=all_bookings,
-        monday=monday,
-        current_week_str=current_week_str,
-        prev_week_str=f'{py}-W{pw:02d}',
-        next_week_str=f'{ny}-W{nw:02d}',
+        departments=departments,
+        years=years,
+        period=period,
+        year=year,
+        month=month,
+        date_from=date_from,
+        date_to=date_to,
+        user_q=user_q,
+        dept_q=dept_q,
+        today=today,
+    )
+
+
+@admin_bp.route('/bookings/export')
+@login_required
+@admin_required
+def export_bookings():
+    query, date_from, date_to, period, *_ = _parse_booking_filters(request.args)
+    rows = query.all()
+
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(['Date', 'Instrument', 'User', 'Department', 'Email',
+                'Phone', 'Supervisor', 'Time', 'Duration (h)', 'Booking ID'])
+    for b in rows:
+        w.writerow([
+            b.date.strftime('%Y-%m-%d'),
+            b.instrument.name,
+            b.user.name,
+            b.user.department,
+            b.user.email,
+            b.user.phone or '',
+            b.user.supervisor_name or '',
+            b.time_display,
+            b.duration,
+            b.id,
+        ])
+
+    filename = f'bookings_{date_from}_{date_to}.csv'
+    return Response(
+        buf.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename="{filename}"'},
     )
 
 
