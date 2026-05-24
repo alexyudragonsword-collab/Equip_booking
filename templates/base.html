@@ -12,7 +12,9 @@
   {% if current_user.is_authenticated %}
   <nav class="navbar">
     <div class="nav-brand">
-      <a href="{{ url_for('bookings.index') }}">⚗ SHARE Instrument Booking System</a>
+      <a href="{{ url_for('bookings.index') }}">
+        <img src="{{ url_for('static', filename='images/share_logo.webp') }}" alt="SHARE Instrument Booking System" class="nav-logo">
+      </a>
     </div>
     <div class="nav-links">
       <a href="{{ url_for('bookings.index') }}" {% if request.endpoint == 'bookings.index' %}class="active"{% endif %}>Book Instruments</a>

@@ -52,10 +52,15 @@ a:hover { text-decoration: underline; }
 }
 
 .nav-brand a {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--gray-900);
+  display: flex;
+  align-items: center;
   text-decoration: none;
+}
+
+.nav-logo {
+  height: 38px;
+  width: auto;
+  display: block;
 }
 
 .nav-links {
@@ -149,6 +154,16 @@ a:hover { text-decoration: underline; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ===== Auth pages ===== */
+.auth-logo-wrap {
+  text-align: center;
+  margin: 2rem auto 1rem;
+}
+
+.auth-logo-img {
+  height: 72px;
+  width: auto;
+}
+
 .auth-card {
   max-width: 420px;
   margin: 3rem auto;
