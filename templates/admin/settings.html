@@ -15,8 +15,10 @@
       <tr>
         <th>Status</th>
         <td>
-          {% if email_method == 'resend' %}
-            <span class="badge badge-active">Configured — Resend API</span>
+          {% if email_method == 'sendgrid' %}
+            <span class="badge badge-active">Configured — SendGrid</span>
+          {% elif email_method == 'resend' %}
+            <span class="badge badge-active">Configured — Resend</span>
           {% elif email_method == 'smtp' %}
             <span class="badge badge-active">Configured — SMTP</span>
           {% else %}
@@ -28,20 +30,13 @@
         <th>Notify address</th>
         <td><code>{{ notify_to }}</code></td>
       </tr>
-      {% if email_method == 'resend' %}
-      <tr>
-        <th>RESEND_API_KEY</th>
-        <td><span class="badge badge-active">Set</span></td>
-      </tr>
+      {% if email_method == 'sendgrid' %}
+      <tr><th>SENDGRID_API_KEY</th><td><span class="badge badge-active">Set</span></td></tr>
+      {% elif email_method == 'resend' %}
+      <tr><th>RESEND_API_KEY</th><td><span class="badge badge-active">Set</span></td></tr>
       {% elif email_method == 'smtp' %}
-      <tr>
-        <th>SMTP Server</th>
-        <td><code>{{ mail_server }}</code></td>
-      </tr>
-      <tr>
-        <th>SMTP Username</th>
-        <td><code>{{ mail_username }}</code></td>
-      </tr>
+      <tr><th>SMTP Server</th><td><code>{{ mail_server }}</code></td></tr>
+      <tr><th>SMTP Username</th><td><code>{{ mail_username }}</code></td></tr>
       {% endif %}
     </tbody>
   </table>
@@ -54,23 +49,27 @@
   {% endif %}
 
   <div class="settings-hint-block">
-    <h3>Recommended: Resend API (works on Railway / Render / Fly.io)</h3>
-    <p>Direct SMTP is often blocked on PaaS platforms. Resend uses HTTPS (port 443) which is never blocked.</p>
+    <h3>Option A — SendGrid (recommended for Railway)</h3>
+    <p>Railway's IPs may be blocked by Cloudflare. SendGrid uses Twilio infrastructure and works reliably on Railway.</p>
     <ol>
-      <li>Sign up free at <strong>resend.com</strong> (3,000 emails/month free).</li>
-      <li>Create an API key in the Resend dashboard.</li>
-      <li>Add Railway variable: <code>RESEND_API_KEY=re_xxxxxxxxxxxx</code></li>
-      <li>Add Railway variable: <code>NOTIFY_ADMIN_EMAIL=your@email.com</code></li>
-      <li>Optionally add <code>MAIL_SENDER=Lab Booking &lt;you@yourdomain.com&gt;</code> (requires verified domain in Resend). Without it, the from address is <code>onboarding@resend.dev</code>.</li>
+      <li>Sign up free at <strong>sendgrid.com</strong> (100 emails/day, no expiry).</li>
+      <li>Go to <strong>Settings → Sender Authentication</strong> and verify a single sender email address (no domain needed).</li>
+      <li>Go to <strong>Settings → API Keys</strong> → Create API Key (Mail Send permission).</li>
+      <li>Add Railway variables:
+        <ul>
+          <li><code>SENDGRID_API_KEY=SG.xxxxxxxxxxxx</code></li>
+          <li><code>MAIL_SENDER=Your Name &lt;verified@youremail.com&gt;</code> (must match the verified sender)</li>
+          <li><code>NOTIFY_ADMIN_EMAIL=admin@youremail.com</code></li>
+        </ul>
+      </li>
     </ol>
 
-    <h3 style="margin-top:1rem">Alternative: Gmail SMTP (only works if SMTP port 587 is open)</h3>
+    <h3 style="margin-top:1rem">Option B — Resend (may be blocked on Railway)</h3>
+    <p>Resend uses Cloudflare. Some Railway deployments get error 1010 (IP blocked by Cloudflare firewall). Try SendGrid first.</p>
     <ol>
-      <li>Enable 2-Step Verification on your Google account.</li>
-      <li>Go to <strong>Google Account → Security → App passwords</strong> and create an App Password.</li>
-      <li>Set: <code>MAIL_SERVER=smtp.gmail.com</code>, <code>MAIL_PORT=587</code>, <code>MAIL_USE_TLS=1</code></li>
-      <li>Set <code>MAIL_USERNAME=your@gmail.com</code> and <code>MAIL_PASSWORD=&lt;App Password&gt;</code> (16-char code, not your login password).</li>
-      <li>Set <code>NOTIFY_ADMIN_EMAIL=your@email.com</code></li>
+      <li>Sign up free at <strong>resend.com</strong> (3,000 emails/month).</li>
+      <li>Create an API key → set <code>RESEND_API_KEY=re_xxxx</code>.</li>
+      <li>Set <code>NOTIFY_ADMIN_EMAIL</code> to the email you registered with (free plan restriction).</li>
     </ol>
   </div>
 </section>
@@ -78,14 +77,12 @@
 {% if email_method %}
 <script>
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
-
 function sendTestEmail() {
   const btn = document.getElementById('btnTestEmail');
   const status = document.getElementById('testEmailStatus');
   btn.disabled = true;
   btn.textContent = 'Sending…';
   status.style.display = 'none';
-
   fetch('/admin/settings/test-email', {
     method: 'POST',
     headers: { 'X-CSRFToken': CSRF },

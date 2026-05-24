@@ -52,13 +52,16 @@ class Config:
     ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
 
     # ── Email notifications ──────────────────────────────────────────────────
-    # Option A — Resend HTTP API (recommended on PaaS: Railway, Render, Fly.io).
-    # Sign up free at resend.com, set RESEND_API_KEY. No SMTP ports needed.
+    # Option A — SendGrid Web API (recommended for Railway: Twilio infra, not Cloudflare).
+    # Sign up free at sendgrid.com (100 emails/day free forever).
+    SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
+
+    # Option B — Resend HTTP API (may be blocked on Railway due to Cloudflare).
+    # Sign up free at resend.com (3,000 emails/month free).
     RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
 
-    # Option B — SMTP (works on servers with outbound port 587/465 open).
-    # Leave MAIL_SERVER unset to disable SMTP entirely (safe default).
-    MAIL_SERVER   = os.environ.get('MAIL_SERVER')            # e.g. smtp.gmail.com
+    # Option C — SMTP (blocked on most PaaS platforms).
+    MAIL_SERVER   = os.environ.get('MAIL_SERVER')
     MAIL_PORT     = int(os.environ.get('MAIL_PORT', '587'))
     MAIL_USE_TLS  = os.environ.get('MAIL_USE_TLS', '1') == '1'
     MAIL_USE_SSL  = os.environ.get('MAIL_USE_SSL', '0') == '1'

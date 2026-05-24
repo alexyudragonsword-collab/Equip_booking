@@ -1,5 +1,6 @@
-"""Email notifications — supports Resend HTTP API (preferred on PaaS) and SMTP fallback."""
+"""Email notifications — supports SendGrid, Resend, and SMTP."""
 import json
+import re
 import smtplib
 import threading
 import urllib.error
@@ -8,7 +9,47 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 
-# ── Resend (HTTP API, works on all PaaS) ─────────────────────────────────────
+# ── SendGrid Web API v3 ───────────────────────────────────────────────────────
+
+def _parse_address(addr):
+    """Split 'Name <email>' into (name_or_None, email)."""
+    m = re.match(r'^(.*)<(.+)>$', addr.strip())
+    if m:
+        return m.group(1).strip() or None, m.group(2).strip()
+    return None, addr.strip()
+
+
+def _send_sendgrid(api_key, from_addr, to_email, subject, body_text):
+    """Send via SendGrid Web API. Raises on failure."""
+    from_name, from_email = _parse_address(from_addr)
+    from_obj = {"email": from_email}
+    if from_name:
+        from_obj["name"] = from_name
+
+    payload = json.dumps({
+        "personalizations": [{"to": [{"email": to_email}]}],
+        "from": from_obj,
+        "subject": subject,
+        "content": [{"type": "text/plain", "value": body_text}],
+    }).encode()
+    req = urllib.request.Request(
+        "https://api.sendgrid.com/v3/mail/send",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            resp.read()  # 202 empty body on success
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode(errors='replace')
+        raise RuntimeError(f"SendGrid API {exc.code}: {body}") from exc
+
+
+# ── Resend HTTP API ───────────────────────────────────────────────────────────
 
 def _send_resend(api_key, from_addr, to_email, subject, body_text):
     """Send via Resend API. Raises on failure."""
@@ -60,30 +101,41 @@ def _send_smtp(server, port, username, password, sender, use_tls, use_ssl,
         conn.sendmail(sender, [to_email], msg.as_string())
 
 
-# ── Unified send (picks method from app config) ───────────────────────────────
+# ── Unified send ──────────────────────────────────────────────────────────────
 
 def _send(app, subject, body_text, to_email):
     cfg = app.config
+    default_sender = cfg.get('MAIL_SENDER') or 'Booking System <noreply@example.com>'
 
-    # Prefer Resend if API key is set
-    api_key = cfg.get('RESEND_API_KEY')
-    if api_key:
+    # Priority 1: SendGrid
+    sg_key = cfg.get('SENDGRID_API_KEY')
+    if sg_key:
+        try:
+            _send_sendgrid(sg_key, default_sender, to_email, subject, body_text)
+            app.logger.info(f'Email sent via SendGrid → {to_email}: {subject}')
+        except Exception as exc:
+            app.logger.error(f'SendGrid send failed: {exc}')
+        return
+
+    # Priority 2: Resend
+    resend_key = cfg.get('RESEND_API_KEY')
+    if resend_key:
         from_addr = cfg.get('MAIL_SENDER') or 'Booking System <onboarding@resend.dev>'
         try:
-            _send_resend(api_key, from_addr, to_email, subject, body_text)
+            _send_resend(resend_key, from_addr, to_email, subject, body_text)
             app.logger.info(f'Email sent via Resend → {to_email}: {subject}')
         except Exception as exc:
             app.logger.error(f'Resend send failed: {exc}')
         return
 
-    # Fall back to SMTP
+    # Priority 3: SMTP
     server   = cfg.get('MAIL_SERVER')
     username = cfg.get('MAIL_USERNAME')
     password = cfg.get('MAIL_PASSWORD')
     if not server or not username or not password:
         app.logger.warning(
-            'Email not configured — set RESEND_API_KEY (recommended on PaaS) '
-            'or MAIL_SERVER + MAIL_USERNAME + MAIL_PASSWORD for SMTP.'
+            'Email not configured — set SENDGRID_API_KEY, RESEND_API_KEY, '
+            'or MAIL_SERVER + MAIL_USERNAME + MAIL_PASSWORD.'
         )
         return
 
@@ -100,26 +152,42 @@ def _send(app, subject, body_text, to_email):
 
 
 def _async(app, subject, body, to_email):
-    """Fire-and-forget: runs _send in a daemon thread."""
-    threading.Thread(
-        target=_send,
-        args=(app, subject, body, to_email),
-        daemon=True,
-    ).start()
+    threading.Thread(target=_send, args=(app, subject, body, to_email), daemon=True).start()
+
+
+def email_method(app):
+    """Return active method: 'sendgrid', 'resend', 'smtp', or None."""
+    cfg = app.config
+    if cfg.get('SENDGRID_API_KEY'):
+        return 'sendgrid'
+    if cfg.get('RESEND_API_KEY'):
+        return 'resend'
+    if cfg.get('MAIL_SERVER') and cfg.get('MAIL_USERNAME') and cfg.get('MAIL_PASSWORD'):
+        return 'smtp'
+    return None
 
 
 def test_send(app, to_email):
     """Synchronous test — returns (ok: bool, message: str)."""
     cfg = app.config
+    subject  = '[Test] Instrument Booking — email config check'
+    body     = ('This is a test email from your Instrument Booking system.\n'
+                'If you received this, your email configuration is working correctly.')
+    default_sender = cfg.get('MAIL_SENDER') or 'Booking System <noreply@example.com>'
 
-    api_key = cfg.get('RESEND_API_KEY')
-    if api_key:
+    sg_key = cfg.get('SENDGRID_API_KEY')
+    if sg_key:
+        try:
+            _send_sendgrid(sg_key, default_sender, to_email, subject, body)
+            return True, f'Test email sent via SendGrid to {to_email}.'
+        except Exception as exc:
+            return False, f'SendGrid send failed: {exc}'
+
+    resend_key = cfg.get('RESEND_API_KEY')
+    if resend_key:
         from_addr = cfg.get('MAIL_SENDER') or 'Booking System <onboarding@resend.dev>'
         try:
-            _send_resend(api_key, from_addr, to_email,
-                         '[Test] Instrument Booking — email config check',
-                         'This is a test email from your Instrument Booking system.\n'
-                         'If you received this, your Resend configuration is working correctly.')
+            _send_resend(resend_key, from_addr, to_email, subject, body)
             return True, f'Test email sent via Resend to {to_email}.'
         except Exception as exc:
             return False, f'Resend send failed: {exc}'
@@ -128,15 +196,9 @@ def test_send(app, to_email):
     username = cfg.get('MAIL_USERNAME')
     password = cfg.get('MAIL_PASSWORD')
     if not server or not username or not password:
-        missing = [k for k, v in [
-            ('RESEND_API_KEY', api_key),
-            ('MAIL_SERVER', server),
-            ('MAIL_USERNAME', username),
-            ('MAIL_PASSWORD', password),
-        ] if not v]
         return False, (
-            f"Email not configured. Set RESEND_API_KEY (recommended) or SMTP vars. "
-            f"Missing: {', '.join(missing)}"
+            'Email not configured. Set SENDGRID_API_KEY (recommended for Railway), '
+            'RESEND_API_KEY, or SMTP variables.'
         )
 
     port    = cfg.get('MAIL_PORT', 587)
@@ -145,33 +207,18 @@ def test_send(app, to_email):
     use_ssl = cfg.get('MAIL_USE_SSL', False)
     try:
         _send_smtp(server, port, username, password, sender, use_tls, use_ssl,
-                   to_email,
-                   '[Test] Instrument Booking — email config check',
-                   'This is a test email from your Instrument Booking system.\n'
-                   'If you received this, your SMTP configuration is working correctly.')
+                   to_email, subject, body)
         return True, f'Test email sent via SMTP to {to_email}.'
     except Exception as exc:
-        return False, f'Send failed: {exc}'
-
-
-def email_method(app):
-    """Return which method is active: 'resend', 'smtp', or None."""
-    cfg = app.config
-    if cfg.get('RESEND_API_KEY'):
-        return 'resend'
-    if cfg.get('MAIL_SERVER') and cfg.get('MAIL_USERNAME') and cfg.get('MAIL_PASSWORD'):
-        return 'smtp'
-    return None
+        return False, f'SMTP send failed: {exc}'
 
 
 # ── Public helpers ────────────────────────────────────────────────────────────
 
 def notify_booking_confirmed(app, booking, instrument, user):
-    """Called after a booking is successfully created."""
     to = app.config.get('NOTIFY_ADMIN_EMAIL')
     if not to:
         return
-
     subject = f'[New Booking] {instrument.name} — {user.name}'
     body = (
         f'A new booking has been confirmed.\n'
@@ -193,13 +240,9 @@ def notify_booking_confirmed(app, booking, instrument, user):
 
 
 def notify_booking_cancelled(app, info, cancelled_by_name):
-    """Called after a booking is cancelled.
-    info dict must be collected BEFORE the booking row is deleted.
-    """
     to = app.config.get('NOTIFY_ADMIN_EMAIL')
     if not to:
         return
-
     subject = f'[Booking Cancelled] {info["instrument"]} — {info["user_name"]}'
     body = (
         f'A booking has been cancelled.\n'

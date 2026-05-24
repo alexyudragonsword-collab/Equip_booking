@@ -219,17 +219,15 @@ def delete_user(user_id):
 def settings():
     cfg = current_app.config
     method = email_method(current_app._get_current_object())
-    notify_to    = cfg.get('NOTIFY_ADMIN_EMAIL') or '(not set)'
-    mail_server  = cfg.get('MAIL_SERVER') or '(not set)'
+    notify_to     = cfg.get('NOTIFY_ADMIN_EMAIL') or '(not set)'
+    mail_server   = cfg.get('MAIL_SERVER') or '(not set)'
     mail_username = cfg.get('MAIL_USERNAME') or '(not set)'
-    resend_key_set = bool(cfg.get('RESEND_API_KEY'))
     return render_template(
         'admin/settings.html',
         email_method=method,
         notify_to=notify_to,
         mail_server=mail_server,
         mail_username=mail_username,
-        resend_key_set=resend_key_set,
     )
 
 
