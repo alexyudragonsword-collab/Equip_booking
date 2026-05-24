@@ -22,6 +22,18 @@
     </div>
 
     <div class="form-group">
+      <label for="phone">Phone <small>(optional)</small></label>
+      <input type="tel" id="phone" name="phone"
+             value="{{ phone or '' }}" placeholder="+1 555 000 0000">
+    </div>
+
+    <div class="form-group">
+      <label for="supervisor_name">Supervisor Name <small>(optional)</small></label>
+      <input type="text" id="supervisor_name" name="supervisor_name"
+             value="{{ supervisor_name or '' }}" placeholder="Prof. Jane Smith">
+    </div>
+
+    <div class="form-group">
       <label for="email">Email</label>
       <input type="email" id="email" name="email" required
              value="{{ email or '' }}" placeholder="you@example.com">

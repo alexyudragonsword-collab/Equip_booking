@@ -147,20 +147,24 @@ def add_user():
     if not data:
         return jsonify({'success': False, 'error': 'Invalid request.'}), 400
 
-    name = data.get('name', '').strip()
-    department = data.get('department', '').strip()
-    email = data.get('email', '').strip().lower()
-    password = data.get('password', '')
-    is_admin = bool(data.get('is_admin', False))
+    name            = data.get('name', '').strip()
+    department      = data.get('department', '').strip()
+    email           = data.get('email', '').strip().lower()
+    phone           = data.get('phone', '').strip()
+    supervisor_name = data.get('supervisor_name', '').strip()
+    password        = data.get('password', '')
+    is_admin        = bool(data.get('is_admin', False))
 
     if not name or not department or not email or not password:
-        return jsonify({'success': False, 'error': 'All fields are required.'}), 400
+        return jsonify({'success': False, 'error': 'Name, department, email and password are required.'}), 400
     if len(password) < 8:
         return jsonify({'success': False, 'error': 'Password must be at least 8 characters.'}), 400
     if User.query.filter_by(email=email).first():
         return jsonify({'success': False, 'error': 'Email already in use.'}), 409
 
-    user = User(name=name, department=department, email=email, is_admin=is_admin)
+    user = User(name=name, department=department, email=email,
+                phone=phone or None, supervisor_name=supervisor_name or None,
+                is_admin=is_admin)
     user.set_password(password)
     db.session.add(user)
     db.session.commit()
@@ -171,6 +175,8 @@ def add_user():
             'name': user.name,
             'department': user.department,
             'email': user.email,
+            'phone': user.phone or '',
+            'supervisor_name': user.supervisor_name or '',
             'is_admin': user.is_admin,
             'created_at': user.created_at.strftime('%Y-%m-%d'),
         }

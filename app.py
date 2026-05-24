@@ -70,6 +70,7 @@ def _auto_init_db(app):
     """On startup: create tables, seed instruments, optionally create initial admin."""
     from models import User, Instrument
     db.create_all()
+    _migrate_sqlite(app)
 
     if Instrument.query.count() == 0:
         for name in ['Instrument 1', 'Instrument 2', 'Instrument 3',
@@ -92,6 +93,25 @@ def _auto_init_db(app):
             db.session.add(admin)
             db.session.commit()
             app.logger.info(f'Created initial admin user: {admin_email}')
+
+
+def _migrate_sqlite(app):
+    """Add new columns to existing SQLite databases (safe to re-run)."""
+    uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+    if not uri.startswith('sqlite'):
+        return  # PostgreSQL handles this via db.create_all() / Alembic
+    new_columns = [
+        ('users', 'phone',           'VARCHAR(30)'),
+        ('users', 'supervisor_name', 'VARCHAR(100)'),
+    ]
+    with db.engine.connect() as conn:
+        for table, column, col_type in new_columns:
+            try:
+                conn.execute(db.text(f'ALTER TABLE {table} ADD COLUMN {column} {col_type}'))
+                conn.commit()
+                app.logger.info(f'Migration: added column {table}.{column}')
+            except Exception:
+                pass  # column already exists
 
 
 def _register_health(app):

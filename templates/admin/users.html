@@ -13,6 +13,8 @@
       <th>Name</th>
       <th>Department</th>
       <th>Email</th>
+      <th>Phone</th>
+      <th>Supervisor</th>
       <th>Admin</th>
       <th>Joined</th>
       <th>Action</th>
@@ -25,6 +27,8 @@
       <td>{{ u.name }}</td>
       <td>{{ u.department }}</td>
       <td>{{ u.email }}</td>
+      <td>{{ u.phone or '—' }}</td>
+      <td>{{ u.supervisor_name or '—' }}</td>
       <td>{% if u.is_admin %}<span class="badge badge-active">Yes</span>{% else %}<span class="badge badge-inactive">No</span>{% endif %}</td>
       <td>{{ u.created_at.strftime('%Y-%m-%d') }}</td>
       <td>
@@ -43,19 +47,27 @@
   <h2>Add User</h2>
   <div class="form-grid">
     <div class="form-group">
-      <label>Full Name</label>
+      <label>Full Name <span class="req">*</span></label>
       <input type="text" id="uName" placeholder="Jane Smith">
     </div>
     <div class="form-group">
-      <label>Department</label>
+      <label>Department <span class="req">*</span></label>
       <input type="text" id="uDept" placeholder="Physics">
     </div>
     <div class="form-group">
-      <label>Email</label>
+      <label>Email <span class="req">*</span></label>
       <input type="email" id="uEmail" placeholder="jane@example.com">
     </div>
     <div class="form-group">
-      <label>Password <small>(min 8 chars)</small></label>
+      <label>Phone <small>(optional)</small></label>
+      <input type="tel" id="uPhone" placeholder="+1 555 000 0000">
+    </div>
+    <div class="form-group">
+      <label>Supervisor Name <small>(optional)</small></label>
+      <input type="text" id="uSupervisor" placeholder="Prof. John Doe">
+    </div>
+    <div class="form-group">
+      <label>Password <small>(min 8 chars)</small> <span class="req">*</span></label>
       <input type="password" id="uPassword" placeholder="••••••••">
     </div>
     <div class="form-group form-group-check">
@@ -65,6 +77,8 @@
   <button class="btn btn-primary" onclick="addUser()">Add User</button>
   <div id="userStatus" class="status-msg" style="display:none"></div>
 </div>
+
+<style>.req { color: #dc2626; }</style>
 
 <script>
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
@@ -88,21 +102,26 @@ function deleteUser(id, name) {
 }
 
 function addUser() {
-  const name = document.getElementById('uName').value.trim();
-  const dept = document.getElementById('uDept').value.trim();
-  const email = document.getElementById('uEmail').value.trim();
-  const password = document.getElementById('uPassword').value;
-  const isAdmin = document.getElementById('uAdmin').checked;
+  const name       = document.getElementById('uName').value.trim();
+  const dept       = document.getElementById('uDept').value.trim();
+  const email      = document.getElementById('uEmail').value.trim();
+  const phone      = document.getElementById('uPhone').value.trim();
+  const supervisor = document.getElementById('uSupervisor').value.trim();
+  const password   = document.getElementById('uPassword').value;
+  const isAdmin    = document.getElementById('uAdmin').checked;
 
   if (!name || !dept || !email || !password) {
-    show('userStatus', 'All fields are required.', 'danger');
+    show('userStatus', 'Name, department, email and password are required.', 'danger');
     return;
   }
 
   fetch('/admin/users/add', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-    body: JSON.stringify({ name, department: dept, email, password, is_admin: isAdmin })
+    body: JSON.stringify({
+      name, department: dept, email, phone,
+      supervisor_name: supervisor, password, is_admin: isAdmin
+    })
   })
   .then(r => r.json())
   .then(data => {
@@ -116,17 +135,22 @@ function addUser() {
         <td>${escHtml(u.name)}</td>
         <td>${escHtml(u.department)}</td>
         <td>${escHtml(u.email)}</td>
+        <td>${escHtml(u.phone || '—')}</td>
+        <td>${escHtml(u.supervisor_name || '—')}</td>
         <td>${u.is_admin ? '<span class="badge badge-active">Yes</span>' : '<span class="badge badge-inactive">No</span>'}</td>
         <td>${u.created_at}</td>
         <td><button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id}, '${escHtml(u.name)}')">Delete</button></td>`;
       tbody.appendChild(tr);
-      ['uName','uDept','uEmail','uPassword'].forEach(id => document.getElementById(id).value = '');
+      ['uName','uDept','uEmail','uPhone','uSupervisor','uPassword'].forEach(
+        id => document.getElementById(id).value = ''
+      );
       document.getElementById('uAdmin').checked = false;
-      show('userStatus', 'User created.', 'success');
+      show('userStatus', 'User created successfully.', 'success');
     } else {
       show('userStatus', data.error, 'danger');
     }
-  });
+  })
+  .catch(() => show('userStatus', 'Request failed. Please try again.', 'danger'));
 }
 
 function escHtml(s) {

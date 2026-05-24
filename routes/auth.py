@@ -12,11 +12,13 @@ def register():
         return redirect(url_for('bookings.index'))
 
     if request.method == 'POST':
-        name = request.form.get('name', '').strip()
-        department = request.form.get('department', '').strip()
-        email = request.form.get('email', '').strip().lower()
-        password = request.form.get('password', '')
-        confirm = request.form.get('confirm_password', '')
+        name            = request.form.get('name', '').strip()
+        department      = request.form.get('department', '').strip()
+        email           = request.form.get('email', '').strip().lower()
+        phone           = request.form.get('phone', '').strip()
+        supervisor_name = request.form.get('supervisor_name', '').strip()
+        password        = request.form.get('password', '')
+        confirm         = request.form.get('confirm_password', '')
 
         errors = []
         if not name:
@@ -36,9 +38,11 @@ def register():
             for e in errors:
                 flash(e, 'danger')
             return render_template('auth/register.html',
-                                   name=name, department=department, email=email)
+                                   name=name, department=department, email=email,
+                                   phone=phone, supervisor_name=supervisor_name)
 
-        user = User(name=name, department=department, email=email)
+        user = User(name=name, department=department, email=email,
+                    phone=phone or None, supervisor_name=supervisor_name or None)
         user.set_password(password)
         db.session.add(user)
         db.session.commit()
