@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, jsonify, abort, current_a
 from flask_login import login_required, current_user
 from extensions import db
 from models import User, Instrument, Booking
-from mailer import notify_booking_cancelled, test_send
+from mailer import notify_booking_cancelled, test_send, email_method
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -218,16 +218,18 @@ def delete_user(user_id):
 @admin_required
 def settings():
     cfg = current_app.config
-    email_configured = bool(cfg.get('MAIL_SERVER') and cfg.get('MAIL_USERNAME') and cfg.get('MAIL_PASSWORD'))
-    notify_to = cfg.get('NOTIFY_ADMIN_EMAIL') or '(not set)'
-    mail_server = cfg.get('MAIL_SERVER') or '(not set)'
+    method = email_method(current_app._get_current_object())
+    notify_to    = cfg.get('NOTIFY_ADMIN_EMAIL') or '(not set)'
+    mail_server  = cfg.get('MAIL_SERVER') or '(not set)'
     mail_username = cfg.get('MAIL_USERNAME') or '(not set)'
+    resend_key_set = bool(cfg.get('RESEND_API_KEY'))
     return render_template(
         'admin/settings.html',
-        email_configured=email_configured,
+        email_method=method,
         notify_to=notify_to,
         mail_server=mail_server,
         mail_username=mail_username,
+        resend_key_set=resend_key_set,
     )
 
 

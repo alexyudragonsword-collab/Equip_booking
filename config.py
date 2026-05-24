@@ -52,8 +52,12 @@ class Config:
     ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
 
     # ── Email notifications ──────────────────────────────────────────────────
-    # SMTP settings for sending booking/cancellation notifications to admin.
-    # Leave MAIL_SERVER unset to disable email entirely (safe default).
+    # Option A — Resend HTTP API (recommended on PaaS: Railway, Render, Fly.io).
+    # Sign up free at resend.com, set RESEND_API_KEY. No SMTP ports needed.
+    RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
+
+    # Option B — SMTP (works on servers with outbound port 587/465 open).
+    # Leave MAIL_SERVER unset to disable SMTP entirely (safe default).
     MAIL_SERVER   = os.environ.get('MAIL_SERVER')            # e.g. smtp.gmail.com
     MAIL_PORT     = int(os.environ.get('MAIL_PORT', '587'))
     MAIL_USE_TLS  = os.environ.get('MAIL_USE_TLS', '1') == '1'

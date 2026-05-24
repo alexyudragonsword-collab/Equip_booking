@@ -15,16 +15,25 @@
       <tr>
         <th>Status</th>
         <td>
-          {% if email_configured %}
-            <span class="badge badge-active">Configured</span>
+          {% if email_method == 'resend' %}
+            <span class="badge badge-active">Configured — Resend API</span>
+          {% elif email_method == 'smtp' %}
+            <span class="badge badge-active">Configured — SMTP</span>
           {% else %}
             <span class="badge badge-inactive">Not configured</span>
-            <span class="settings-hint">
-              Set <code>MAIL_SERVER</code>, <code>MAIL_USERNAME</code>, and <code>MAIL_PASSWORD</code> environment variables.
-            </span>
           {% endif %}
         </td>
       </tr>
+      <tr>
+        <th>Notify address</th>
+        <td><code>{{ notify_to }}</code></td>
+      </tr>
+      {% if email_method == 'resend' %}
+      <tr>
+        <th>RESEND_API_KEY</th>
+        <td><span class="badge badge-active">Set</span></td>
+      </tr>
+      {% elif email_method == 'smtp' %}
       <tr>
         <th>SMTP Server</th>
         <td><code>{{ mail_server }}</code></td>
@@ -33,14 +42,11 @@
         <th>SMTP Username</th>
         <td><code>{{ mail_username }}</code></td>
       </tr>
-      <tr>
-        <th>Notify address</th>
-        <td><code>{{ notify_to }}</code></td>
-      </tr>
+      {% endif %}
     </tbody>
   </table>
 
-  {% if email_configured %}
+  {% if email_method %}
   <div class="test-email-row">
     <button class="btn btn-primary" id="btnTestEmail" onclick="sendTestEmail()">Send Test Email</button>
     <span id="testEmailStatus" class="status-msg" style="display:none"></span>
@@ -48,18 +54,28 @@
   {% endif %}
 
   <div class="settings-hint-block">
-    <h3>Gmail setup</h3>
+    <h3>Recommended: Resend API (works on Railway / Render / Fly.io)</h3>
+    <p>Direct SMTP is often blocked on PaaS platforms. Resend uses HTTPS (port 443) which is never blocked.</p>
+    <ol>
+      <li>Sign up free at <strong>resend.com</strong> (3,000 emails/month free).</li>
+      <li>Create an API key in the Resend dashboard.</li>
+      <li>Add Railway variable: <code>RESEND_API_KEY=re_xxxxxxxxxxxx</code></li>
+      <li>Add Railway variable: <code>NOTIFY_ADMIN_EMAIL=your@email.com</code></li>
+      <li>Optionally add <code>MAIL_SENDER=Lab Booking &lt;you@yourdomain.com&gt;</code> (requires verified domain in Resend). Without it, the from address is <code>onboarding@resend.dev</code>.</li>
+    </ol>
+
+    <h3 style="margin-top:1rem">Alternative: Gmail SMTP (only works if SMTP port 587 is open)</h3>
     <ol>
       <li>Enable 2-Step Verification on your Google account.</li>
       <li>Go to <strong>Google Account → Security → App passwords</strong> and create an App Password.</li>
-      <li>Set <code>MAIL_SERVER=smtp.gmail.com</code>, <code>MAIL_PORT=587</code>, <code>MAIL_USE_TLS=1</code>.</li>
-      <li>Set <code>MAIL_USERNAME</code> to your Gmail address and <code>MAIL_PASSWORD</code> to the App Password (not your login password).</li>
-      <li>Set <code>NOTIFY_ADMIN_EMAIL</code> to the address that should receive notifications.</li>
+      <li>Set: <code>MAIL_SERVER=smtp.gmail.com</code>, <code>MAIL_PORT=587</code>, <code>MAIL_USE_TLS=1</code></li>
+      <li>Set <code>MAIL_USERNAME=your@gmail.com</code> and <code>MAIL_PASSWORD=&lt;App Password&gt;</code> (16-char code, not your login password).</li>
+      <li>Set <code>NOTIFY_ADMIN_EMAIL=your@email.com</code></li>
     </ol>
   </div>
 </section>
 
-{% if email_configured %}
+{% if email_method %}
 <script>
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 
